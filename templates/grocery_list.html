@@ -9,7 +9,7 @@
     <form action="/add" method="POST" class="mb-3">
         <div class="input-group">
             <input type="text" name="name" placeholder="Product" class="form-control" required>
-            <input type="number" name="quantity" placeholder="Quantity" class="form-control" required>
+            <input type="number" name="quantity" placeholder="Quantity" class="form-control">
             <button type="submit" class="btn btn-success">Add</button>
         </div>
     </form>
@@ -21,18 +21,19 @@
 
     <ul class="list-group">
         {% for item in groceries %}
-        <li class="list-group-item d-flex justify-content-between align-items-center">
+        <li class="list-group-item d-flex justify-content-between align-items-center" id="item-{{ item.id }}" 
+            {% if item.purchased %}class="purchased-item"{% endif %}>
             <input type="checkbox" class="purchased-checkbox" 
                    onclick="togglePurchased({{ item.id }})" 
                    {% if item.purchased %}checked{% endif %}>
             
-            <span class="{{ 'text-decoration-line-through' if item.purchased else '' }}">
+            <span id="item-{{ item.id }}-content" class="{{ 'strikethrough' if item.purchased else '' }}">
                 <input type="text" id="name-{{ item.id }}" value="{{ item.name }}" 
-                       class="form-control-sm"
+                       class="form-control-sm item-input"
                        onchange="saveChanges({{ item.id }}, 'name')">
 
                 <input type="number" id="quantity-{{ item.id }}" value="{{ item.quantity }}" 
-                       class="form-control-sm"
+                       class="form-control-sm item-input"
                        onchange="saveChanges({{ item.id }}, 'quantity')">
             </span>
 
@@ -48,8 +49,13 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                let itemSpan = document.getElementById('name-' + itemId).parentElement;
-                itemSpan.classList.toggle('text-decoration-line-through', data.purchased);
+                let itemSpan = document.getElementById('item-' + itemId + '-content');
+                itemSpan.classList.toggle('strikethrough', data.purchased); // Add or remove the strikethrough class
+                // Also apply or remove line-through effect on input fields directly
+                let inputs = itemSpan.querySelectorAll('input');
+                inputs.forEach(input => {
+                    input.classList.toggle('strikethrough-input', data.purchased);
+                });
             }
         });
     }
@@ -73,16 +79,21 @@
         let checkboxes = document.querySelectorAll('.purchased-checkbox');
         let allChecked = Array.from(checkboxes).every(checkbox => checkbox.checked);
         checkboxes.forEach(checkbox => {
-            if (allChecked) {
-                checkbox.checked = false;
-                togglePurchased(checkbox.parentElement.dataset.itemId);
-            } else {
-                if (!checkbox.checked) {
-                    checkbox.checked = true;
-                    togglePurchased(checkbox.parentElement.dataset.itemId);
-                }
-            }
+            checkbox.checked = !allChecked;
+            togglePurchased(checkbox.closest('li').id.split('-')[1]);  // Get the item ID from the list element
         });
     }
 </script>
+
+<style>
+    .strikethrough {
+        text-decoration: line-through;  /* Add line-through to span containing inputs */
+    }
+
+    .strikethrough-input {
+        text-decoration: line-through;  /* Apply line-through effect to inputs (name and quantity) */
+        background-color: #f2f2f2;  /* Optional: Change the background color to make it visually distinct */
+    }
+</style>
+
 {% endblock %}

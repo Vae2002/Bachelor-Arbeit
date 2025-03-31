@@ -157,7 +157,10 @@ def add_item():
     name = request.form.get('name')
     quantity = request.form.get('quantity', type=int)
 
-    if name and quantity:
+    if not quantity:
+        quantity = 1
+
+    if name:
         new_item = GroceryItem(name=name, quantity=quantity, user_id=current_user.id)
         db.session.add(new_item)
         db.session.commit()
