@@ -30,7 +30,8 @@ class User(UserMixin, db.Model):
     password = db.Column(db.String(150), nullable=False)
     email = db.Column(db.String(150), unique=True, nullable=True)
     bio = db.Column(db.Text, nullable=True)
-    profile_pic = db.Column(db.String(300), nullable=True, default="default.jpg")  # Default profile pic
+    profile_pic = db.Column(db.String(300), nullable=True, default="default.jpg")
+    groceries = db.relationship('GroceryItem', backref='user', lazy=True)
 
 # GroceryItem Model
 class GroceryItem(db.Model):
@@ -38,6 +39,7 @@ class GroceryItem(db.Model):
     name = db.Column(db.String(100), nullable=False)
     quantity = db.Column(db.Integer, nullable=False)
     purchased = db.Column(db.Boolean, default=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False) 
 
 # Load user function for Flask-Login
 @login_manager.user_loader
@@ -48,7 +50,7 @@ def load_user(user_id):
 @app.route('/')
 @login_required
 def grocery():
-    items = GroceryItem.query.all()
+    items = GroceryItem.query.filter_by(user_id=current_user.id).all()
     return render_template('grocery_list.html', items=items, user=current_user)
 
 # Registration route
@@ -111,16 +113,23 @@ def logout():
 def add_item():
     name = request.form.get('name')
     quantity = request.form.get('quantity', type=int)
+
     if name and quantity:
-        new_item = GroceryItem(name=name, quantity=quantity)
+        new_item = GroceryItem(name=name, quantity=quantity, user_id=current_user.id)
         db.session.add(new_item)
         db.session.commit()
+
     return redirect(url_for('grocery'))
 
 @app.route('/delete/<int:item_id>')
 @login_required
 def delete_item(item_id):
     item = GroceryItem.query.get_or_404(item_id)
+    
+    if item.user_id != current_user.id:  # Prevent unauthorized deletion
+        flash("You can't delete someone else's item!", "danger")
+        return redirect(url_for('grocery'))
+
     db.session.delete(item)
     db.session.commit()
     return redirect(url_for('grocery'))
@@ -128,7 +137,7 @@ def delete_item(item_id):
 @app.route('/clear_completed')
 @login_required
 def clear_completed():
-    GroceryItem.query.filter_by(purchased=True).delete()
+    GroceryItem.query.filter_by(purchased=True, user_id=current_user.id).delete()
     db.session.commit()
     return redirect(url_for('grocery'))
 
@@ -136,6 +145,9 @@ def clear_completed():
 @login_required
 def toggle_purchased(item_id):
     item = GroceryItem.query.get_or_404(item_id)
+    if item.user_id != current_user.id:  # Prevent unauthorized actions
+        flash("Unauthorized action!", "danger")
+        return redirect(url_for('grocery'))
     item.purchased = not item.purchased
     db.session.commit()
     return redirect(url_for('grocery'))
@@ -168,8 +180,15 @@ def update_profile():
     flash('Profile updated successfully!', 'success')
     return redirect(url_for('profile'))
 
+# Recreate the database (Run this ONCE after deleting `grocery.db`)
+def reset_database():
+    if os.path.exists("grocery.db"):
+        os.remove("grocery.db")  # Delete old database file
+    db.create_all()
+    print("Database reset and recreated successfully!")
+
 # Initialize Database
 if __name__ == '__main__':
     with app.app_context():
-        db.create_all()
+        reset_database()  # Call this function ONCE to reset
     app.run(debug=True)
