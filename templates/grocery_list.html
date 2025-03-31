@@ -52,6 +52,9 @@
                 <ul class="navbar-nav ms-auto">
                     {% if current_user.is_authenticated %}
                         <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('diet_calculator') }}">Diet Calculator</a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('profile') }}">Profile</a>
                         </li>
                         <li class="nav-item">
@@ -70,7 +73,7 @@
         </nav>        
 
         <!-- Grocery List Title -->
-        <h2 class="text-center my-4">Your Grocery Shopping List</h2>
+        <h2 class="text-center my-4">Kitchen App</h2>
 
         <!-- Add Grocery Item Form -->
         <form action="/add" method="POST" class="mb-3">

@@ -107,6 +107,72 @@ def logout():
     flash('You have been logged out.', 'info')
     return redirect(url_for('login'))
 
+from flask import Flask, render_template, request
+
+# Other imports and existing code
+
+@app.route('/diet_calculator', methods=['GET', 'POST'])
+@login_required
+def diet_calculator():
+    if request.method == 'POST':
+        # Extract form data
+        weight = float(request.form['weight'])
+        height = float(request.form['height'])
+        age = int(request.form['age'])
+        gender = request.form['gender']
+        goal = request.form['goal']
+        activity = request.form['activity']
+        
+        # Optional Inputs (if provided)
+        neck = request.form.get('neck', type=float)
+        waist = request.form.get('waist', type=float)
+        hip = request.form.get('hip', type=float)
+        protein_percent = int(request.form['protein'])
+        fat_percent = int(request.form['fat'])
+        carbs_percent = int(request.form['carbs'])
+        
+        # Metric System
+        metric = request.form['metric']
+        
+        # Calculate BMR (using the Harris-Benedict Equation)
+        if gender == 'male':
+            bmr = 88.362 + (13.397 * weight) + (4.799 * height) - (5.677 * age)
+        else:
+            bmr = 447.593 + (9.247 * weight) + (3.098 * height) - (4.330 * age)
+
+        # Adjust BMR based on activity level
+        if activity == 'sedentary':
+            bmr *= 1.2
+        elif activity == 'light':
+            bmr *= 1.375
+        elif activity == 'moderate':
+            bmr *= 1.55
+        elif activity == 'intense':
+            bmr *= 1.725
+
+        # Adjust BMR based on goal
+        if goal == 'lose_weight':
+            bmr -= 500
+        elif goal == 'gain_weight':
+            bmr += 500
+
+        # Calculate macronutrient breakdown based on percentages
+        total_calories = bmr
+        protein_grams = (protein_percent / 100) * total_calories / 4  # 4 calories per gram of protein
+        fat_grams = (fat_percent / 100) * total_calories / 9  # 9 calories per gram of fat
+        carbs_grams = (carbs_percent / 100) * total_calories / 4  # 4 calories per gram of carbs
+
+        # Return the result as a dictionary
+        result = {
+            'total_calories': total_calories,
+            'protein_grams': protein_grams,
+            'fat_grams': fat_grams,
+            'carbs_grams': carbs_grams
+        }
+        return render_template('diet_calculator_result.html', result=result)
+
+    return render_template('diet_calculator.html')
+
 # GroceryItem routes
 @app.route('/add', methods=['POST'])
 @login_required
