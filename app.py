@@ -118,16 +118,22 @@ def diet_calculator():
         goal = request.form['goal']
         activity = request.form['activity']
         
-        # Optional inputs
+        # Optional inputs for body measurements
         neck = float(request.form['neck']) if request.form['neck'] else None
         waist = float(request.form['waist']) if request.form['waist'] else None
         hip = float(request.form['hip']) if request.form['hip'] else None
         
-        # BMR Calculation using Mifflin-St Jeor formula
+        # Calculate BMR using different methods depending on gender and measurements
         if gender == 'male':
+            # Mifflin-St Jeor formula for males
             bmr = 10 * weight + 6.25 * height - 5 * age + 5
         else:
-            bmr = 10 * weight + 6.25 * height - 5 * age - 161
+            # For females, we use the US Navy method or a more precise version using waist and neck
+            if neck and waist:
+                bmr = 66 + (13.75 * weight) + (5 * height) - (6.75 * age) + (6.75 * (waist - neck))
+            else:
+                # If no waist or neck, use Mifflin-St Jeor for females
+                bmr = 10 * weight + 6.25 * height - 5 * age - 161
         
         # Physical Activity Multipliers
         activity_multipliers = {
