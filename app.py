@@ -134,23 +134,26 @@ def delete_item(item_id):
     db.session.commit()
     return redirect(url_for('grocery'))
 
-@app.route('/clear_completed')
+@app.route('/clear_all', methods=['POST'])
 @login_required
-def clear_completed():
+def clear_all():
     GroceryItem.query.filter_by(purchased=True, user_id=current_user.id).delete()
     db.session.commit()
-    return redirect(url_for('grocery'))
+    
+    return {"success": True, "message": "All purchased items cleared!"} 
 
-@app.route('/toggle_purchased/<int:item_id>')
+@app.route('/toggle_purchased/<int:item_id>', methods=['POST'])
 @login_required
 def toggle_purchased(item_id):
     item = GroceryItem.query.get_or_404(item_id)
-    if item.user_id != current_user.id:  # Prevent unauthorized actions
-        flash("Unauthorized action!", "danger")
-        return redirect(url_for('grocery'))
+    
+    if item.user_id != current_user.id:
+        return {"error": "Unauthorized action!"}, 403
+
     item.purchased = not item.purchased
     db.session.commit()
-    return redirect(url_for('grocery'))
+
+    return {"success": True, "purchased": item.purchased} 
 
 # Profile Page
 @app.route('/profile')

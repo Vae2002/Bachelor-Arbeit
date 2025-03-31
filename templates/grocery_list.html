@@ -81,8 +81,10 @@
             </div>
         </form>
 
-        <!-- Clear All Button -->
-        <button class="btn btn-danger w-100 mb-3" onclick="clearAllPurchased()">Clear All Purchased Items</button>
+        <div class="d-flex justify-content-between mb-3">
+            <button class="btn btn-link text-decoration-underline p-0" onclick="selectAllPurchased()">Select All</button>
+            <button class="btn btn-link text-decoration-underline p-0" onclick="clearAllPurchased()">Clear All Purchased</button>
+        </div>        
 
         <!-- Grocery List -->
         <ul class="list-group">
@@ -123,23 +125,30 @@
         // Toggle purchased status (AJAX)
         function togglePurchased(itemId) {
             fetch(`/toggle_purchased/${itemId}`, {
-                method: 'POST',
+                method: 'POST',  // Correct method
+                headers: {
+                    'Content-Type': 'application/json'  // Ensure correct content type
+                }
             })
             .then(response => response.json())
             .then(data => {
-                let itemElement = document.getElementById('name-' + itemId);
-                let quantityElement = document.getElementById('quantity-' + itemId);
+                if (data.success) {
+                    let itemElement = document.getElementById('name-' + itemId);
+                    let quantityElement = document.getElementById('quantity-' + itemId);
+                    let radioButton = document.querySelector(`input[name="purchased-${itemId}"]`);
 
-                if (data.purchased) {
-                    itemElement.classList.add('purchased');
-                    quantityElement.classList.add('purchased');
+                    if (data.purchased) {
+                        itemElement.classList.add('purchased');
+                        quantityElement.classList.add('purchased');
+                        radioButton.checked = true;
+                    } else {
+                        itemElement.classList.remove('purchased');
+                        quantityElement.classList.remove('purchased');
+                        radioButton.checked = false;
+                    }
                 } else {
-                    itemElement.classList.remove('purchased');
-                    quantityElement.classList.remove('purchased');
+                    alert("Error toggling item status!");
                 }
-
-                let radioButton = document.querySelector(`input[name="purchased-${itemId}"]`);
-                radioButton.checked = data.purchased;
             })
             .catch(error => console.error('Error:', error));
         }
@@ -172,20 +181,39 @@
         function clearAllPurchased() {
             fetch('/clear_all', {
                 method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'  // Ensure correct format
+                }
             })
             .then(response => response.json())
             .then(data => {
-                alert(data.message);
-                
-                let listItems = document.querySelectorAll('.list-group-item');
-                listItems.forEach(item => {
-                    if (item.querySelector('input[type="radio"]:checked')) {
-                        item.remove();
-                    }
-                });
+                if (data.success) {
+                    alert(data.message);
+
+                    // Remove only purchased items from the list
+                    document.querySelectorAll('.list-group-item').forEach(item => {
+                        let radio = item.querySelector('input[type="radio"]:checked');
+                        if (radio) {
+                            item.remove();
+                        }
+                    });
+                } else {
+                    alert("Error clearing items!");
+                }
             })
             .catch(error => console.error('Error:', error));
         }
+
+        // Function to mark all items as purchased
+        function selectAllPurchased() {
+            document.querySelectorAll('.purchased-radio').forEach(radio => {
+                if (!radio.checked) {
+                    radio.checked = true;
+                    togglePurchased(radio.getAttribute('name').split('-')[1]);  // Extract item ID and mark as purchased
+                }
+            });
+        }
+
     </script>
 
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
