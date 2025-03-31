@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grocery Shopping List</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .container {
+            max-width: 800px;
+        }
+        .purchased {
+            text-decoration: line-through;
+        }
+        /* Make product field longer */
+        .product-field {
+            width: 60%;  /* Adjust the width for the product input */
+        }
+        /* Align quantity field to the left */
+        .quantity-field {
+            width: 30%; /* Adjust the width for the quantity input */
+            text-align: left; /* Align the text to the left */
+        }
+        /* Align entire item to the left */
+        .list-group-item {
+            display: flex;
+            justify-content: flex-start; /* Aligns the content to the left */
+            align-items: center;
+        }
+        .input-group {
+            width: 100%;
+        }
+        .list-group-item .ms-2 {
+            width: 100%; /* Allows the name and quantity to be aligned within the flex */
+            display: flex;
+            justify-content: space-between;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <!-- Navigation Bar -->
+        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+            <a class="navbar-brand" href="#">Grocery List</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    {% if current_user.is_authenticated %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('profile') }}">Profile</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('login') }}">Login</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('register') }}">Register</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </nav>        
+
+        <!-- Grocery List Title -->
+        <h2 class="text-center my-4">Your Grocery Shopping List</h2>
+
+        <!-- Add Grocery Item Form -->
+        <form action="/add" method="POST" class="mb-3">
+            <div class="input-group">
+                <input type="text" name="name" placeholder="Product" class="form-control" required>
+                <input type="number" name="quantity" placeholder="Quantity" class="form-control" required>
+                <button type="submit" class="btn btn-success">Add</button>
+            </div>
+        </form>
+
+        <!-- Clear All Button -->
+        <button class="btn btn-danger w-100 mb-3" onclick="clearAllPurchased()">Clear All Purchased Items</button>
+
+        <!-- Grocery List -->
+        <ul class="list-group">
+            {% for item in items %}
+            <li class="list-group-item">
+                <!-- Radio Button -->
+                <input type="radio" name="purchased-{{ item.id }}" 
+                       class="purchased-radio" 
+                       onclick="togglePurchased({{ item.id }})" 
+                       {% if item.purchased %}checked{% endif %}>
+                
+                <!-- Item Name and Quantity as Input Fields -->
+                <span class="ms-2 {{ 'text-decoration-line-through' if item.purchased else '' }}">
+                    <input 
+                        type="text" 
+                        id="name-{{ item.id }}" 
+                        class="form-control-sm product-field"
+                        value="{{ item.name }}" 
+                        onchange="saveChanges({{ item.id }}, 'name')" />
+                    
+                    <input 
+                        type="number" 
+                        id="quantity-{{ item.id }}" 
+                        class="form-control-sm quantity-field"
+                        value="{{ item.quantity }}" 
+                        onchange="saveChanges({{ item.id }}, 'quantity')" />
+                </span>
+                
+                <!-- Delete Button -->
+                <a href="/delete/{{ item.id }}" class="btn btn-danger btn-sm">Delete</a>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        // Toggle purchased status (AJAX)
+        function togglePurchased(itemId) {
+            fetch(`/toggle_purchased/${itemId}`, {
+                method: 'POST',
+            })
+            .then(response => response.json())
+            .then(data => {
+                let itemElement = document.getElementById('name-' + itemId);
+                let quantityElement = document.getElementById('quantity-' + itemId);
+
+                if (data.purchased) {
+                    itemElement.classList.add('purchased');
+                    quantityElement.classList.add('purchased');
+                } else {
+                    itemElement.classList.remove('purchased');
+                    quantityElement.classList.remove('purchased');
+                }
+
+                let radioButton = document.querySelector(`input[name="purchased-${itemId}"]`);
+                radioButton.checked = data.purchased;
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        // Save changes to name or quantity (AJAX)
+        function saveChanges(itemId, field) {
+            let newValue = document.getElementById(field + '-' + itemId).value.trim();
+            
+            if (newValue === "") {
+                alert("Value cannot be empty!");
+                return;
+            }
+
+            let formData = new FormData();
+            formData.append('new_' + field, newValue);
+
+            fetch(`/rename/${itemId}`, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    alert('Failed to save changes');
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        // Function to handle clearing all purchased items
+        function clearAllPurchased() {
+            fetch('/clear_all', {
+                method: 'POST',
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                
+                let listItems = document.querySelectorAll('.list-group-item');
+                listItems.forEach(item => {
+                    if (item.querySelector('input[type="radio"]:checked')) {
+                        item.remove();
+                    }
+                });
+            })
+            .catch(error => console.error('Error:', error));
+        }
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
+</body>
+</html>
