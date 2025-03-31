@@ -1,40 +1,70 @@
-<!-- Diet Calculator -->
-{% if request.endpoint == 'diet_calculator' %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diet Calculator</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* Button Styling */
+        .btn-outline-primary {
+            color: #007bff;
+            border-color: #007bff;
+        }
+
+        .btn-outline-primary:hover {
+            background-color: #007bff;
+            color: white;
+        }
+
+        /* Form Field Adjustments */
+        .form-control {
+            font-size: 1rem;
+            padding: 0.8rem;
+            border-radius: 5px;
+            border: 1px solid #ced4da;
+        }
+
+        /* Optional Input Fields */
+        .optional-inputs .form-control {
+            background-color: #f8f9fa;
+        }
+
+        /* Form Container */
+        .container {
+            max-width: 900px;
+            margin: auto;
+        }
+
+        /* Header Navigation Styling */
+        .navbar {
+            margin-bottom: 20px;
+        }
+
+        .navbar a {
+            color: #007bff;
+            text-decoration: none;
+            font-size: 18px;
+        }
+
+        .navbar a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header with Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container">
+            <a class="navbar-brand" href="/">Home</a>  <!-- Link to the homepage -->
+            <h2 class="ml-auto">Diet Calculator</h2>
+        </div>
+    </nav>
+
+    <!-- Diet Calculator Form -->
     <div class="container mt-4">
         <h2 class="text-center">Diet Calculator</h2>
-        <style>
-            /* Button Styling */
-            .btn-outline-primary {
-                color: #007bff;
-                border-color: #007bff;
-            }
-
-            .btn-outline-primary:hover {
-                background-color: #007bff;
-                color: white;
-            }
-
-            /* Form Field Adjustments */
-            .form-control {
-                font-size: 1rem;
-                padding: 0.8rem;
-                border-radius: 5px;
-                border: 1px solid #ced4da;
-            }
-
-            /* Optional Input Fields */
-            .optional-inputs .form-control {
-                background-color: #f8f9fa;
-            }
-
-            /* Form Container */
-            .container {
-                max-width: 900px;
-                margin: auto;
-            }
-        </style>
         
-        <!-- Diet Form -->
         <form id="diet-form" method="POST">
             <!-- Weight, Height, Age, Gender, Goal, and Physical Activity -->
             <div class="mb-3">
@@ -115,20 +145,21 @@
             <button type="submit" class="btn btn-outline-primary btn-block">Calculate</button>
         </form>
 
-        <!-- Display Results if Available -->
-        {% if bmr and tdee %}
-            <div class="container mt-4">
-                <h3 class="text-center">Your Results</h3>
-                <p><strong>BMR:</strong> {{ bmr }} kcal/day</p>
-                <p><strong>TDEE:</strong> {{ tdee }} kcal/day</p>
-                
-                <h4>Macronutrient Breakdown:</h4>
-                <ul>
-                    <li><strong>Protein:</strong> {{ protein_grams }} grams</li>
-                    <li><strong>Fat:</strong> {{ fat_grams }} grams</li>
-                    <li><strong>Carbs:</strong> {{ carbs_grams }} grams</li>
-                </ul>
-            </div>
+        <!-- If the results are available, show them -->
+        {% if bmr %}
+        <div class="mt-4">
+            <h4>Your Results:</h4>
+            <p><strong>BMR:</strong> {{ bmr }} kcal/day</p>
+            <p><strong>TDEE:</strong> {{ tdee }} kcal/day</p>
+            <p><strong>Protein:</strong> {{ protein_grams }} g/day</p>
+            <p><strong>Fat:</strong> {{ fat_grams }} g/day</p>
+            <p><strong>Carbs:</strong> {{ carbs_grams }} g/day</p>
+        </div>
         {% endif %}
     </div>
-{% endif %}
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
