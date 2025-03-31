@@ -34,6 +34,7 @@
             }
         </style>
         
+        <!-- Diet Form -->
         <form id="diet-form" method="POST">
             <!-- Weight, Height, Age, Gender, Goal, and Physical Activity -->
             <div class="mb-3">
@@ -113,5 +114,21 @@
             <!-- Submit Button -->
             <button type="submit" class="btn btn-outline-primary btn-block">Calculate</button>
         </form>
+
+        <!-- Display Results if Available -->
+        {% if bmr and tdee %}
+            <div class="container mt-4">
+                <h3 class="text-center">Your Results</h3>
+                <p><strong>BMR:</strong> {{ bmr }} kcal/day</p>
+                <p><strong>TDEE:</strong> {{ tdee }} kcal/day</p>
+                
+                <h4>Macronutrient Breakdown:</h4>
+                <ul>
+                    <li><strong>Protein:</strong> {{ protein_grams }} grams</li>
+                    <li><strong>Fat:</strong> {{ fat_grams }} grams</li>
+                    <li><strong>Carbs:</strong> {{ carbs_grams }} grams</li>
+                </ul>
+            </div>
+        {% endif %}
     </div>
 {% endif %}

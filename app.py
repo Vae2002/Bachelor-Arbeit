@@ -107,15 +107,10 @@ def logout():
     flash('You have been logged out.', 'info')
     return redirect(url_for('login'))
 
-from flask import Flask, render_template, request
-
-# Other imports and existing code
-
 @app.route('/diet_calculator', methods=['GET', 'POST'])
-@login_required
 def diet_calculator():
     if request.method == 'POST':
-        # Extract form data
+        # Get input data from the form
         weight = float(request.form['weight'])
         height = float(request.form['height'])
         age = int(request.form['age'])
@@ -123,54 +118,45 @@ def diet_calculator():
         goal = request.form['goal']
         activity = request.form['activity']
         
-        # Optional Inputs (if provided)
-        neck = request.form.get('neck', type=float)
-        waist = request.form.get('waist', type=float)
-        hip = request.form.get('hip', type=float)
-        protein_percent = int(request.form['protein'])
-        fat_percent = int(request.form['fat'])
-        carbs_percent = int(request.form['carbs'])
+        # Optional inputs
+        neck = float(request.form['neck']) if request.form['neck'] else None
+        waist = float(request.form['waist']) if request.form['waist'] else None
+        hip = float(request.form['hip']) if request.form['hip'] else None
         
-        # Metric System
-        metric = request.form['metric']
-        
-        # Calculate BMR (using the Harris-Benedict Equation)
+        # BMR Calculation using Mifflin-St Jeor formula
         if gender == 'male':
-            bmr = 88.362 + (13.397 * weight) + (4.799 * height) - (5.677 * age)
+            bmr = 10 * weight + 6.25 * height - 5 * age + 5
         else:
-            bmr = 447.593 + (9.247 * weight) + (3.098 * height) - (4.330 * age)
-
-        # Adjust BMR based on activity level
-        if activity == 'sedentary':
-            bmr *= 1.2
-        elif activity == 'light':
-            bmr *= 1.375
-        elif activity == 'moderate':
-            bmr *= 1.55
-        elif activity == 'intense':
-            bmr *= 1.725
-
-        # Adjust BMR based on goal
-        if goal == 'lose_weight':
-            bmr -= 500
-        elif goal == 'gain_weight':
-            bmr += 500
-
-        # Calculate macronutrient breakdown based on percentages
-        total_calories = bmr
-        protein_grams = (protein_percent / 100) * total_calories / 4  # 4 calories per gram of protein
-        fat_grams = (fat_percent / 100) * total_calories / 9  # 9 calories per gram of fat
-        carbs_grams = (carbs_percent / 100) * total_calories / 4  # 4 calories per gram of carbs
-
-        # Return the result as a dictionary
-        result = {
-            'total_calories': total_calories,
-            'protein_grams': protein_grams,
-            'fat_grams': fat_grams,
-            'carbs_grams': carbs_grams
+            bmr = 10 * weight + 6.25 * height - 5 * age - 161
+        
+        # Physical Activity Multipliers
+        activity_multipliers = {
+            'sedentary': 1.2,
+            'light': 1.375,
+            'moderate': 1.55,
+            'intense': 1.725
         }
-        return render_template('diet_calculator_result.html', result=result)
+        tdee = bmr * activity_multipliers[activity]
+        
+        # Macronutrient breakdown
+        protein_percentage = float(request.form['protein']) / 100
+        fat_percentage = float(request.form['fat']) / 100
+        carb_percentage = 1 - protein_percentage - fat_percentage
+        
+        # Calculate grams of each macronutrient
+        protein_grams = (tdee * protein_percentage) / 4
+        fat_grams = (tdee * fat_percentage) / 9
+        carbs_grams = (tdee * carb_percentage) / 4
 
+        # Return the calculated data to the template
+        return render_template('diet_calculator.html', 
+                               bmr=bmr, 
+                               tdee=tdee, 
+                               protein_grams=protein_grams, 
+                               fat_grams=fat_grams, 
+                               carbs_grams=carbs_grams)
+    
+    # If GET request, render the form page
     return render_template('diet_calculator.html')
 
 # GroceryItem routes
