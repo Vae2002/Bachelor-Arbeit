@@ -32,7 +32,12 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(150), unique=True, nullable=True)
     bio = db.Column(db.Text, nullable=True)
     profile_pic = db.Column(db.String(300), nullable=True, default="default.jpg")
-    groceries = db.relationship('GroceryItem', backref='user', lazy=True)
+    
+    # Add new fields with default values
+    cuisines = db.Column(db.Text, nullable=True, default="[]")  # Store as JSON string
+    allergies = db.Column(db.Text, nullable=True, default="[]") 
+    dietary_restrictions = db.Column(db.Text, nullable=True, default="[]")
+
 
 # Load user function for Flask-Login
 @login_manager.user_loader
@@ -81,6 +86,45 @@ def logout():
     logout_user()
     flash('Logged out successfully.', 'info')
     return redirect(url_for('login'))
+
+# =================== PROFILE PAGE ===================
+@app.route('/profile', methods=['GET', 'POST'])
+@login_required
+def profile():
+    # Ensure old users don't break due to missing fields
+    if current_user.cuisines is None:
+        current_user.cuisines = "[]"
+    if current_user.allergies is None:
+        current_user.allergies = "[]"
+    if current_user.dietary_restrictions is None:
+        current_user.dietary_restrictions = "[]"
+    
+    # Handle form submission
+    if request.method == "POST":
+        # Update user fields
+        current_user.username = request.form.get("username")
+        current_user.email = request.form.get("email")
+        current_user.bio = request.form.get("bio")
+
+        # Handle profile picture upload
+        if "profile_pic" in request.files:
+            profile_pic = request.files["profile_pic"]
+            if profile_pic.filename != "":
+                pic_filename = f"{current_user.id}_{secure_filename(profile_pic.filename)}"
+                profile_pic.save(os.path.join(app.config['UPLOAD_FOLDER'], pic_filename))
+                current_user.profile_pic = pic_filename  # Save filename to user model
+
+        # Save selected preferences (convert lists to JSON strings)
+        current_user.cuisines = str(request.form.getlist("cuisines[]"))
+        current_user.allergies = str(request.form.getlist("allergies[]"))
+        current_user.dietary_restrictions = str(request.form.getlist("dietary_restrictions[]"))
+
+        # Commit changes to the database
+        db.session.commit()
+        flash("Profile updated successfully!", "success")
+        return redirect(url_for("profile"))  # Redirect to refresh the page
+
+    return render_template("profile.html", user=current_user)
 
 # =================== HOMEPAGE ===================
 @app.route('/')
@@ -219,22 +263,8 @@ def rename_item(item_id):
     db.session.commit()
     return jsonify(success=True)
 
-# =================== PROFILE PAGE ===================
-@app.route('/profile')
-@login_required
-def profile():
-    return render_template('profile.html', user=current_user)
 
-@app.route('/update_profile', methods=['POST'])
-@login_required
-def update_profile():
-    user = current_user
-    user.username = request.form['username']
-    user.email = request.form['email']
-    user.bio = request.form['bio']
-    db.session.commit()
-    flash('Profile updated successfully!', 'success')
-    return redirect(url_for('profile'))
+# =================== DATABASE ===================
 
 # # Recreate the database (Run this ONCE after deleting `grocery.db`)
 # def reset_database():

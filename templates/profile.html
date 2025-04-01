@@ -20,7 +20,7 @@
                 </div>
 
                 <!-- Profile Form -->
-                <form action="{{ url_for('update_profile') }}" method="POST" enctype="multipart/form-data">
+                <form action="{{ url_for('profile') }}" method="POST" enctype="multipart/form-data">
                     <div class="mb-3">
                         <label class="form-label">Username:</label>
                         <input type="text" name="username" class="form-control" value="{{ user.username }}" required>
@@ -37,8 +37,68 @@
                         <label class="form-label">Profile Picture:</label>
                         <input type="file" name="profile_pic" class="form-control">
                     </div>
+                
+                    <!-- Personal Preferences -->
+                    <div class="mb-3">
+                        <label class="form-label">Cuisines:</label>
+                        <div class="d-flex flex-column">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="cuisines[]" value="Italian" 
+                                    {% if user.cuisines and "Italian" in user.cuisines %}checked{% endif %}>
+                                <label class="form-check-label">Italian</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="cuisines[]" value="Chinese" 
+                                    {% if user.cuisines and "Chinese" in user.cuisines %}checked{% endif %}>
+                                <label class="form-check-label">Chinese</label>
+                            </div>
+                        </div>
+                    </div>
+                
+                    <div class="mb-3">
+                        <label class="form-label">Allergies:</label>
+                        <div class="d-flex flex-column">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="allergies[]" value="Peanuts" 
+                                    {% if user.allergies and "Peanuts" in user.allergies %}checked{% endif %}>
+                                <label class="form-check-label">Peanuts</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="allergies[]" value="Dairy" 
+                                    {% if user.allergies and "Dairy" in user.allergies %}checked{% endif %}>
+                                <label class="form-check-label">Dairy</label>
+                            </div>
+                        </div>
+                    </div>
+                
+                    <div class="mb-3">
+                        <label class="form-label">Dietary Restrictions:</label>
+                        <div class="d-flex flex-wrap">
+                            <div class="form-check me-3">
+                                <input class="form-check-input" type="checkbox" name="dietary_restrictions[]" value="Low Salt" 
+                                    {% if user.dietary_restrictions and "Low Salt" in user.dietary_restrictions %}checked{% endif %}>
+                                <label class="form-check-label">Low Salt</label>
+                            </div>
+                            <div class="form-check me-3">
+                                <input class="form-check-input" type="checkbox" name="dietary_restrictions[]" value="Low Sugar" 
+                                    {% if user.dietary_restrictions and "Low Sugar" in user.dietary_restrictions %}checked{% endif %}>
+                                <label class="form-check-label">Low Sugar</label>
+                            </div>
+                            <div class="form-check me-3">
+                                <input class="form-check-input" type="checkbox" name="dietary_restrictions[]" value="Low Fat" 
+                                    {% if user.dietary_restrictions and "Low Fat" in user.dietary_restrictions %}checked{% endif %}>
+                                <label class="form-check-label">Low Fat</label>
+                            </div>
+                            <div class="form-check me-3">
+                                <input class="form-check-input" type="checkbox" name="dietary_restrictions[]" value="Gluten Free" 
+                                    {% if user.dietary_restrictions and "Gluten Free" in user.dietary_restrictions %}checked{% endif %}>
+                                <label class="form-check-label">Gluten Free</label>
+                            </div>
+                        </div>
+                    </div>
+                
                     <button type="submit" class="btn btn-primary w-100">Save Changes</button>
-                </form>
+                </form>                                
                 
                 <a href="/" class="btn btn-secondary w-100 mt-2">Back to Home</a>
             </div>
