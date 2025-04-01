@@ -95,7 +95,6 @@ def logout():
 @app.route('/profile', methods=['GET', 'POST'])
 @login_required
 def profile():
-    # Ensure old users don't break due to missing fields
     if current_user.cuisines is None:
         current_user.cuisines = "[]"
     if current_user.allergies is None:
@@ -103,32 +102,48 @@ def profile():
     if current_user.dietary_restrictions is None:
         current_user.dietary_restrictions = "[]"
     
-    # Handle form submission
     if request.method == "POST":
-        # Update user fields
+        # Handle Profile Update
         current_user.username = request.form.get("username")
         current_user.email = request.form.get("email")
         current_user.bio = request.form.get("bio")
 
-        # Handle profile picture upload
         if "profile_pic" in request.files:
             profile_pic = request.files["profile_pic"]
             if profile_pic.filename != "":
                 pic_filename = f"{current_user.id}_{secure_filename(profile_pic.filename)}"
                 profile_pic.save(os.path.join(app.config['UPLOAD_FOLDER'], pic_filename))
-                current_user.profile_pic = pic_filename  # Save filename to user model
+                current_user.profile_pic = pic_filename
 
-        # Save selected preferences (convert lists to JSON strings)
         current_user.cuisines = str(request.form.getlist("cuisines[]"))
         current_user.allergies = str(request.form.getlist("allergies[]"))
         current_user.dietary_restrictions = str(request.form.getlist("dietary_restrictions[]"))
 
-        # Commit changes to the database
         db.session.commit()
         flash("Profile updated successfully!", "success")
-        return redirect(url_for("profile"))  # Redirect to refresh the page
+        return redirect(url_for("profile"))
 
     return render_template("profile.html", user=current_user)
+
+@app.route('/change_password', methods=['POST'])
+@login_required
+def change_password():
+    current_password = request.form.get('current_password')
+    new_password = request.form.get('new_password')
+    confirm_new_password = request.form.get('confirm_new_password')
+
+    if not check_password_hash(current_user.password, current_password):
+        flash("Incorrect current password.", "danger")
+        return redirect(url_for('profile'))
+
+    if new_password != confirm_new_password:
+        flash("New passwords do not match.", "danger")
+        return redirect(url_for('profile'))
+
+    current_user.password = generate_password_hash(new_password)
+    db.session.commit()
+    flash("Password updated successfully!", "success")
+    return redirect(url_for('profile'))
 
 # =================== HOMEPAGE ===================
 @app.route('/')

@@ -33,11 +33,13 @@
                         <label class="form-label">Bio:</label>
                         <textarea name="bio" class="form-control">{{ user.bio }}</textarea>
                     </div>
+
+                    <!-- Profile Picture Upload -->
                     <div class="mb-3">
                         <label class="form-label">Profile Picture:</label>
                         <input type="file" name="profile_pic" class="form-control">
                     </div>
-                
+
                     <!-- Personal Preferences -->
                     <div class="mb-3">
                         <label class="form-label">Cuisines:</label>
@@ -70,7 +72,7 @@
                             </div>
                         </div>
                     </div>
-                
+
                     <div class="mb-3">
                         <label class="form-label">Dietary Restrictions:</label>
                         <div class="d-flex flex-wrap">
@@ -96,10 +98,34 @@
                             </div>
                         </div>
                     </div>
-                
-                    <button type="submit" class="btn btn-primary w-100">Save Changes</button>
-                </form>                                
-                
+
+                    <button type="submit" class="btn btn-primary w-100">Save Profile Changes</button>
+                </form>   
+
+                <!-- Change Password Section -->
+                <div class="mt-4">
+                    <button type="button" class="btn btn-warning w-100" data-bs-toggle="collapse" data-bs-target="#changePasswordForm">
+                        Change Password
+                    </button>
+                    <div id="changePasswordForm" class="collapse">
+                        <form action="{{ url_for('change_password') }}" method="POST">
+                            <div class="mb-3">
+                                <label class="form-label">Current Password:</label>
+                                <input type="password" name="current_password" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">New Password:</label>
+                                <input type="password" name="new_password" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Confirm New Password:</label>
+                                <input type="password" name="confirm_new_password" class="form-control" required>
+                            </div>
+                            <button type="submit" class="btn btn-success w-100">Change Password</button>
+                        </form>
+                    </div>
+                </div>
+
                 <a href="/" class="btn btn-secondary w-100 mt-2">Back to Home</a>
             </div>
         </div>
