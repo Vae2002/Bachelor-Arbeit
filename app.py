@@ -33,7 +33,12 @@ class User(UserMixin, db.Model):
     bio = db.Column(db.Text, nullable=True)
     profile_pic = db.Column(db.String(300), nullable=True, default="default.jpg")
     
-    # Add new fields with default values
+    # Add new fields for daily calorie intake and macronutrients
+    daily_calories = db.Column(db.Float, nullable=True)
+    protein_grams = db.Column(db.Float, nullable=True)
+    fat_grams = db.Column(db.Float, nullable=True)
+    carbs_grams = db.Column(db.Float, nullable=True)
+    
     cuisines = db.Column(db.Text, nullable=True, default="[]")  # Store as JSON string
     allergies = db.Column(db.Text, nullable=True, default="[]") 
     dietary_restrictions = db.Column(db.Text, nullable=True, default="[]")
@@ -78,7 +83,7 @@ def login():
         if user and check_password_hash(user.password, password):
             login_user(user)
             flash('Login successful!', 'success')  # Flash success message
-            return redirect(url_for('home'))
+            return redirect(url_for('profile'))
         else:
             flash('Invalid credentials.', 'danger')
     
@@ -156,7 +161,14 @@ def home():
 @login_required
 def diet_calculator():
     if request.method == 'POST':
-        weight = float(request.form['weight'])
+        
+        weight = request.form.get('weight')
+        if weight is None:
+            flash("Weight is required.", "danger")
+            return redirect(url_for('diet_calculator'))
+
+        weight = float(weight)
+
         height = float(request.form['height'])
         age = int(request.form['age'])
         gender = request.form['gender']
@@ -194,6 +206,30 @@ def diet_calculator():
         fat_grams = (tdee * fat_percentage) / 9
         carbs_grams = (tdee * carb_percentage) / 4
 
+        # Save to user's profile if "Save to Profile" button is clicked
+        if request.form.get("save_to_profile"):
+            # Print each value to the terminal to verify it
+            # print(f"Saving to profile for user {current_user.username}...")
+            print(f"Daily Calories: {tdee}")
+            print(f"Protein (grams): {protein_grams}")
+            print(f"Fat (grams): {fat_grams}")
+            print(f"Carbs (grams): {carbs_grams}")
+
+            # Save the calculated values to the user's profile
+            current_user.daily_calories = tdee
+            current_user.protein_grams = protein_grams
+            current_user.fat_grams = fat_grams
+            current_user.carbs_grams = carbs_grams
+            
+            # Commit changes to the database
+            db.session.commit()
+
+            # Print confirmation
+            print(tdee, protein_grams, fat_grams, carbs_grams)
+
+            flash("Diet info saved to profile!", "success")
+
+        
         return render_template('diet_calculator.html', bmr=bmr, tdee=tdee, protein_grams=protein_grams, fat_grams=fat_grams, carbs_grams=carbs_grams)
     
     return render_template('diet_calculator.html')

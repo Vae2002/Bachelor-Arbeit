@@ -34,11 +34,13 @@
                         <textarea name="bio" class="form-control">{{ user.bio }}</textarea>
                     </div>
 
-                    <!-- Profile Picture Upload -->
-                    <div class="mb-3">
-                        <label class="form-label">Profile Picture:</label>
-                        <input type="file" name="profile_pic" class="form-control">
-                    </div>
+                    <!-- Display Daily Calories and Macronutrients on Profile -->
+                    <h3 class="mt-4">Diet Information</h3>
+                    <p><strong>Daily Calories:</strong> {{ user.daily_calories }}</p>
+                    <p><strong>Protein Grams:</strong> {{ user.protein_grams }}</p>
+                    <p><strong>Fat Grams:</strong> {{ user.fat_grams }}</p>
+                    <p><strong>Carbs Grams:</strong> {{ user.carbs_grams }}</p>                    
+                    
 
                     <!-- Personal Preferences -->
                     <div class="mb-3">
@@ -99,8 +101,15 @@
                         </div>
                     </div>
 
+                    <!-- Profile Picture Upload -->
+                    <div class="mb-3">
+                        <label class="form-label">Profile Picture:</label>
+                        <input type="file" name="profile_pic" class="form-control">
+                    </div>
+
                     <button type="submit" class="btn btn-primary w-100">Save Profile Changes</button>
                 </form>   
+                
 
                 <!-- Change Password Section -->
                 <div class="mt-4">

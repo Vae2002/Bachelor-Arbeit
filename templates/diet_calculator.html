@@ -16,6 +16,12 @@
             <p><strong>Protein:</strong> {{ protein_grams }} g/day</p>
             <p><strong>Fat:</strong> {{ fat_grams }} g/day</p>
             <p><strong>Carbs:</strong> {{ carbs_grams }} g/day</p>
+
+            <!-- Save to Profile Button -->
+            <form method="POST" action="{{ url_for('diet_calculator') }}">
+                <input type="hidden" name="save_to_profile" value="true">
+                <button type="submit" class="btn btn-success w-100 mt-4">Save to Profile</button>
+            </form>
         </div>
         {% endif %}
         
