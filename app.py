@@ -51,9 +51,12 @@ def register():
         password = request.form['password']
         email = request.form['email']
 
-        user_exists = User.query.filter_by(username=username).first()
+        # Check if username OR email is already taken
+        user_exists = User.query.filter(
+            (User.username == username) | (User.email == email)
+        ).first()
         if user_exists:
-            flash('Username already taken!', 'danger')
+            flash('Username or email already taken!', 'danger')
             return redirect(url_for('register'))
 
         hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
@@ -68,12 +71,13 @@ def register():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form['username']
+        username = request.form['username'].lower()  # Convert to lowercase
         password = request.form['password']
         
         user = User.query.filter_by(username=username).first()
         if user and check_password_hash(user.password, password):
             login_user(user)
+            flash('Login successful!', 'success')  # Flash success message
             return redirect(url_for('home'))
         else:
             flash('Invalid credentials.', 'danger')
@@ -84,7 +88,7 @@ def login():
 @login_required
 def logout():
     logout_user()
-    flash('Logged out successfully.', 'info')
+    flash('You have been logged out successfully.', 'info')
     return redirect(url_for('login'))
 
 # =================== PROFILE PAGE ===================

@@ -49,6 +49,7 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ml-auto">
+                    <!-- Other Nav Items -->
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('diet_calculator') }}">Diet Calculator</a>
                     </li>
@@ -58,6 +59,21 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('profile') }}">Profile</a>
                     </li>
+                    
+                    <!-- Profile Picture or Initials -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('profile') }}">
+                            {% if current_user.profile_pic %}
+                                <img src="{{ url_for('static', filename='uploads/' + current_user.profile_pic) }}" class="rounded-circle" width="40" height="40">
+                            {% else %}
+                                <div class="rounded-circle bg-primary text-white d-flex justify-content-center align-items-center" style="width: 40px; height: 40px;">
+                                    <span>{{ current_user.username[0].upper() }}</span>
+                                </div>
+                            {% endif %}
+                        </a>
+                    </li>
+
+                    <!-- Logout Button -->
                     <li class="nav-item">
                         <a class="nav-link btn btn-danger text-white px-3 py-1" href="{{ url_for('logout') }}">Logout</a>
                     </li>
