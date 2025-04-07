@@ -28,6 +28,53 @@
                     <label class="form-label">Bio:</label>
                     <textarea name="bio" class="form-control">{{ user.bio }}</textarea>
                 </div>
+                <!-- Members Section -->
+                <h4 class="mt-4">Family Members</h4>
+                <ul class="list-group mb-3">
+                    {% for member in members %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ member.name }}
+                            <span class="text-muted small">
+                                Calories: {{ member.daily_calories or 'N/A' }}
+                            </span>
+                        </li>
+                    {% endfor %}
+                </ul>
+
+                <!-- Add Member Form -->
+                <form method="POST" action="{{ url_for('add_member') }}">
+                    <div x-data="{ open: false, addMode: false, members: {{ members|map(attribute='name')|list|tojson }}, newMember: '' }" class="relative inline-block text-left mb-4">
+                        <button @click="open = !open" type="button" class="bg-blue-500 text-white px-4 py-2 rounded-lg">
+                          Select Member
+                        </button>
+                      
+                        <div x-show="open" @click.away="open = false" class="absolute mt-2 w-48 bg-white border rounded shadow-md z-10">
+                          <!-- Existing members dropdown -->
+                          <template x-for="(member, index) in members" :key="index">
+                            <div class="px-4 py-2 hover:bg-gray-100 cursor-pointer" x-text="member" @click="open = false"></div>
+                          </template>
+                      
+                          <div class="border-t my-2"></div>
+                      
+                          <!-- Add new member -->
+                          <template x-if="addMode">
+                            <div class="px-4 py-2">
+                              <form method="POST" action="{{ url_for('add_member') }}">
+                                <input name="new_member" x-model="newMember" type="text" placeholder="New member name"
+                                  class="w-full border px-2 py-1 rounded mb-2" required />
+                                <button type="submit" class="w-full bg-green-500 text-white px-2 py-1 rounded">
+                                  Add
+                                </button>
+                              </form>
+                            </div>
+                          </template>
+                      
+                          <div x-show="!addMode" @click="addMode = true" class="px-4 py-2 hover:bg-gray-100 cursor-pointer text-blue-600">
+                            ➕ Add Member
+                          </div>
+                        </div>
+                      </div>                       
+                </form>
 
                 <!-- Diet Information -->
                 <h3 class="mt-4">Diet Information</h3>
@@ -114,5 +161,7 @@
         </div>
     </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
 
 {% endblock %}

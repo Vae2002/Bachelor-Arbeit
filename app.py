@@ -17,11 +17,16 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # =================== AUTHENTICATION ===================
 # Initialize Database
-db = SQLAlchemy(app)
+db = SQLAlchemy()
 
 # Initialize LoginManager
 login_manager = LoginManager()
 login_manager.login_view = 'login'
+
+# Bind db to the Flask app
+db.init_app(app)
+
+# Initialize LoginManager
 login_manager.init_app(app)
 
 # User Model
@@ -32,15 +37,24 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(150), unique=True, nullable=True)
     bio = db.Column(db.Text, nullable=True)
     profile_pic = db.Column(db.String(300), nullable=True, default="default.jpg")
+
+    members = db.relationship('Member', backref='user', lazy=True)
     
-    # Add new fields for daily calorie intake and macronutrients
+# Member Model
+class Member(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    name = db.Column(db.String(150), nullable=False)
+    
+    # Diet Info
     daily_calories = db.Column(db.Float, nullable=True)
     protein_grams = db.Column(db.Float, nullable=True)
     fat_grams = db.Column(db.Float, nullable=True)
     carbs_grams = db.Column(db.Float, nullable=True)
-    
-    cuisines = db.Column(db.Text, nullable=True, default="[]")  # Store as JSON string
-    allergies = db.Column(db.Text, nullable=True, default="[]") 
+
+    # Preferences
+    cuisines = db.Column(db.Text, nullable=True, default="[]")
+    allergies = db.Column(db.Text, nullable=True, default="[]")
     dietary_restrictions = db.Column(db.Text, nullable=True, default="[]")
 
 
@@ -100,35 +114,37 @@ def logout():
 @app.route('/profile', methods=['GET', 'POST'])
 @login_required
 def profile():
-    if current_user.cuisines is None:
-        current_user.cuisines = "[]"
-    if current_user.allergies is None:
-        current_user.allergies = "[]"
-    if current_user.dietary_restrictions is None:
-        current_user.dietary_restrictions = "[]"
-    
     if request.method == "POST":
-        # Handle Profile Update
+        # Update main user info
         current_user.username = request.form.get("username")
         current_user.email = request.form.get("email")
         current_user.bio = request.form.get("bio")
 
         if "profile_pic" in request.files:
             profile_pic = request.files["profile_pic"]
-            if profile_pic.filename != "":
-                pic_filename = f"{current_user.id}_{secure_filename(profile_pic.filename)}"
-                profile_pic.save(os.path.join(app.config['UPLOAD_FOLDER'], pic_filename))
-                current_user.profile_pic = pic_filename
-
-        current_user.cuisines = str(request.form.getlist("cuisines[]"))
-        current_user.allergies = str(request.form.getlist("allergies[]"))
-        current_user.dietary_restrictions = str(request.form.getlist("dietary_restrictions[]"))
+            if profile_pic and profile_pic.filename != "":
+                filename = f"{current_user.id}_{secure_filename(profile_pic.filename)}"
+                profile_pic.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                current_user.profile_pic = filename
 
         db.session.commit()
-        flash("Profile updated successfully!", "success")
+        flash("Profile updated!", "success")
         return redirect(url_for("profile"))
 
-    return render_template("profile.html", user=current_user)
+    members = current_user.members
+    return render_template("profile.html", user=current_user, members=members)
+
+@app.route('/add_member', methods=['POST'])
+@login_required
+def add_member():
+    name = request.form.get('member_name')
+    if name:
+        new_member = Member(name=name, user_id=current_user.id)
+        db.session.add(new_member)
+        db.session.commit()
+        flash(f"Added member: {name}", "success")
+    return redirect(url_for('profile'))
+
 
 @app.route('/change_password', methods=['POST'])
 @login_required
@@ -249,6 +265,16 @@ def diet_calculator():
         if request.form.get("save_to_profile"):
             print(f"Save to profile button clicked!")
 
+            member_id = request.form.get('member_id')
+            if member_id:
+                member = Member.query.filter_by(id=int(member_id), user_id=current_user.id).first()
+                if member:
+                    member.daily_calories = tdee
+                    member.protein_grams = protein_grams
+                    member.fat_grams = fat_grams
+                    member.carbs_grams = carbs_grams
+                    db.session.commit()
+                    flash(f"Diet info saved for {member.name}!", "success")
             
             # Save the values from the database to user's profile
             try:
@@ -362,6 +388,122 @@ def rename_item(item_id):
     db.session.commit()
     return jsonify(success=True)
 
+# =================== RECIPES ===================
+import os
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_from_directory
+import pandas as pd
+
+# Assuming the path to your CSV is given correctly.
+RECIPES_CSV_PATH = 'datasets/recipes_with_images.csv'
+IMAGE_FOLDER_PATH = 'C:/Users/vae.tiolamon/Documents/DHBW Folder/DHBW 6. Semester/Food Images/Food Images/'
+
+# Load CSV into DataFrame using pandas
+def load_recipes():
+    df = pd.read_csv(RECIPES_CSV_PATH)
+    recipes = []
+    for index, row in df.iterrows():
+        recipe = {
+            "name": row['Title'],
+            "ingredients": row['Cleaned_Ingredients'].split(','), 
+            "image": row['Image_Name']
+        }
+        recipes.append(recipe)
+    return recipes
+
+# Pre-load recipes into memory
+recipes = load_recipes()
+
+# Helper function to serve images
+@app.route('/images/<filename>')
+def serve_image(filename):
+    return send_from_directory(IMAGE_FOLDER_PATH, filename)
+
+# Helper function to serve images
+@app.route('/images/<filename>')
+def send_image(filename):  # Renamed the function to avoid conflicts
+    return send_from_directory(IMAGE_FOLDER_PATH, filename)
+
+# Helper function for pagination
+def paginate(items, page, per_page=9):
+    start = (page - 1) * per_page
+    end = start + per_page
+    return items[start:end]
+
+# Calculate page numbers to show (previous and next 3 pages, with ellipses)
+def get_pagination_range(page, total_pages, num_links=3):
+    pagination = []
+
+    # Always show the first and last page
+    if page > 1:
+        pagination.append(1)  # First page
+        if page > num_links + 1:
+            pagination.append("...")  # Ellipsis for skipped pages
+
+    # Calculate range of pages around current page
+    start = max(page - num_links, 2)
+    end = min(page + num_links, total_pages - 1)
+
+    # Add pages around the current page
+    pagination.extend(range(start, end + 1))
+
+    # Always show the last page
+    if page < total_pages:
+        if page < total_pages - num_links - 1:
+            pagination.append("...")  # Ellipsis for skipped pages
+        pagination.append(total_pages)
+
+    return pagination
+
+@app.route('/recipe_lookup', methods=['GET', 'POST'])
+@login_required
+def recipe_lookup():
+    search_results = []
+    page = int(request.args.get('page', 1))  # Get the current page number from URL (default is 1)
+
+    if request.method == 'POST':
+        # Get user input
+        ingredients_input = request.form.get('ingredients', '').split(',')
+        name_input = request.form.get('recipe_name', '').lower()
+
+        # Split the search input into individual words and filter out empty strings
+        search_words = set(word.strip().lower() for word in (name_input + ' ' + ','.join(ingredients_input)).split() if word.strip())
+
+        # Filter recipes by ingredients and name
+        search_results = []
+        for recipe in recipes:
+            # Ensure recipe name is a string and handle missing/NaN values
+            recipe_name = str(recipe['name']) if recipe['name'] else ""
+            recipe_ingredients = [ingredient.strip().lower() for ingredient in recipe['ingredients']]
+
+            # Check if all the words from the search input are in the recipe name or ingredients
+            name_match = all(word in recipe_name.lower() for word in search_words)
+            ingredient_match = all(word in recipe_ingredients for word in search_words)
+
+            # Add the recipe to the results if it matches either the name or the ingredients
+            if name_match or ingredient_match:
+                search_results.append(recipe)
+
+    # If no search terms, show all recipes, but paginated
+    if not search_results:
+        search_results = recipes
+
+    # Paginate the results
+    paginated_recipes = paginate(search_results, page)
+
+    # Calculate total pages
+    total_pages = len(search_results) // 9 + (1 if len(search_results) % 9 > 0 else 0)
+
+    # Get pagination range
+    pagination = get_pagination_range(page, total_pages)
+
+    return render_template(
+        'recipe_lookup.html', 
+        search_results=paginated_recipes, 
+        IMAGE_FOLDER_PATH=IMAGE_FOLDER_PATH,
+        page=page,
+        total_pages=total_pages,
+        pagination=pagination
+    )
 
 # =================== DATABASE ===================
 

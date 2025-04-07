@@ -20,8 +20,16 @@
             <!-- Save to Profile Button -->
             <form method="POST" action="{{ url_for('diet_calculator') }}">
                 <input type="hidden" name="save_to_profile" value="true">
-                <button type="submit" class="btn btn-success w-100 mt-4">Save to Profile</button>                
-            </form>
+                <div class="mb-3">
+                    <label>Select Member to Save:</label>
+                    <select name="member_id" class="form-control" required>
+                        {% for member in current_user.members %}
+                        <option value="{{ member.id }}">{{ member.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-success w-100 mt-2">Save to Profile</button>
+            </form>            
         </div>
         {% endif %}
         
