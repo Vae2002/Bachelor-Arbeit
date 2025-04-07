@@ -31,10 +31,11 @@
 
                 <!-- Diet Information -->
                 <h3 class="mt-4">Diet Information</h3>
-                <p><strong>Daily Calories:</strong> {{ user.daily_calories }}</p>
-                <p><strong>Protein Grams:</strong> {{ user.protein_grams }}</p>
-                <p><strong>Fat Grams:</strong> {{ user.fat_grams }}</p>
-                <p><strong>Carbs Grams:</strong> {{ user.carbs_grams }}</p>                    
+                <p><strong>Daily Calories:</strong> {{ current_user.daily_calories }}</p>
+                <p><strong>Protein:</strong> {{ current_user.protein_grams }} g</p>
+                <p><strong>Fat:</strong> {{ current_user.fat_grams }} g</p>
+                <p><strong>Carbs:</strong> {{ current_user.carbs_grams }} g</p>
+                                               
 
                 <!-- Preferences -->
                 <div class="mb-3">

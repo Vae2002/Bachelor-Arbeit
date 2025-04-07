@@ -160,7 +160,11 @@ def home():
 @app.route('/diet_calculator', methods=['GET', 'POST'])
 @login_required
 def diet_calculator():
+    # Initialize variables to store diet info
+    bmr = tdee = protein_grams = fat_grams = carbs_grams = None  # Default values
+
     if request.method == 'POST':
+        print(f"Form data: {request.form}")  # Print all the form data
         
         weight = request.form.get('weight')
         if weight is None:
@@ -168,7 +172,6 @@ def diet_calculator():
             return redirect(url_for('diet_calculator'))
 
         weight = float(weight)
-
         height = float(request.form['height'])
         age = int(request.form['age'])
         gender = request.form['gender']
@@ -206,31 +209,72 @@ def diet_calculator():
         fat_grams = (tdee * fat_percentage) / 9
         carbs_grams = (tdee * carb_percentage) / 4
 
-        # Save to user's profile if "Save to Profile" button is clicked
-        if request.form.get("save_to_profile"):
-            # Print each value to the terminal to verify it
-            # print(f"Saving to profile for user {current_user.username}...")
-            print(f"Daily Calories: {tdee}")
-            print(f"Protein (grams): {protein_grams}")
-            print(f"Fat (grams): {fat_grams}")
-            print(f"Carbs (grams): {carbs_grams}")
+        # # Debug print for calculations
+        # print(f"Daily Calories: {tdee}")
+        # print(f"Protein (grams): {protein_grams}")
+        # print(f"Fat (grams): {fat_grams}")
+        # print(f"Carbs (grams): {carbs_grams}")
 
-            # Save the calculated values to the user's profile
-            current_user.daily_calories = tdee
-            current_user.protein_grams = protein_grams
-            current_user.fat_grams = fat_grams
-            current_user.carbs_grams = carbs_grams
-            
-            # Commit changes to the database
+        # Save the calculated values to the database (before 'Save to Profile')
+        current_user.daily_calories = tdee
+        current_user.protein_grams = protein_grams
+        current_user.fat_grams = fat_grams
+        current_user.carbs_grams = carbs_grams
+
+        # Debug print for db
+        print(f"Daily Calories: {current_user.daily_calories}")
+        print(f"Protein (grams): {current_user.protein_grams}")
+        print(f"Fat (grams): {current_user.fat_grams}")
+        print(f"Carbs (grams): {current_user.carbs_grams}")
+
+
+        try:
+            print("Attempting to commit changes to the database...")  # Debugging line
+
+            # Ensure changes are being tracked
+            if db.session.dirty:
+                print("Diet info calculated and saved to profile!")
+                print("There are changes to commit.")
+                db.session.flush()  # Ensure changes are written to the DB
+
             db.session.commit()
-
-            # Print confirmation
-            print(tdee, protein_grams, fat_grams, carbs_grams)
-
-            flash("Diet info saved to profile!", "success")
-
+            flash("Diet info calculated and saved to profile!", "success")
+        except Exception as e:
+            print(f"Error during commit: {e}")  # This should show the error if it occurs
+            flash(f"Error saving data: {e}", "danger")
+            db.session.rollback()  # Rollback any changes if there's an error
+            print(f"Error: {e}")  # Additional print for debugging
         
-        return render_template('diet_calculator.html', bmr=bmr, tdee=tdee, protein_grams=protein_grams, fat_grams=fat_grams, carbs_grams=carbs_grams)
+        # Now, handle the save to profile (the button click)
+        if request.form.get("save_to_profile"):
+            print(f"Save to profile button clicked!")
+
+            
+            # Save the values from the database to user's profile
+            try:
+                # Get the latest values from the database (if needed)
+                saved_tdee = current_user.daily_calories
+                saved_protein = current_user.protein_grams
+                saved_fat = current_user.fat_grams
+                saved_carbs = current_user.carbs_grams
+
+                # Commit changes to the database
+                db.session.commit()
+
+                flash("Diet info saved to profile!", "success")
+            except Exception as e:
+                flash(f"Error saving data: {e}", "danger")
+                print(f"Error: {e}")
+
+        # Render the result on the same page
+        return render_template(
+            'diet_calculator.html', 
+            bmr=bmr, 
+            tdee=tdee, 
+            protein_grams=protein_grams, 
+            fat_grams=fat_grams, 
+            carbs_grams=carbs_grams
+        )
     
     return render_template('diet_calculator.html')
 
