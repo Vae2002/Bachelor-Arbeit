@@ -1,145 +1,117 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Profile</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-</head>
-<body>
-    <div class="container mt-5">
-        <h2 class="text-center">User Profile</h2>
+{% extends "base.html" %}
+{% block title %}Profile{% endblock %}
+{% block content %}
 
-        <div class="card mx-auto" style="max-width: 400px;">
-            <div class="card-body">
-                <h5 class="card-title text-center">{{ user.username }}</h5>
+<div class="container mt-5">
+    <h2 class="text-center">User Profile</h2>
 
-                <!-- Profile Picture -->
-                <div class="text-center mb-3">
-                    <img src="{{ url_for('static', filename='uploads/' + user.profile_pic) }}" alt="Profile Picture" class="rounded-circle" width="100">
-                </div>
+    <div class="card mx-auto" style="max-width: 400px;">
+        <div class="card-body">
+            <h5 class="card-title text-center">{{ user.username }}</h5>
 
-                <!-- Profile Form -->
-                <form action="{{ url_for('profile') }}" method="POST" enctype="multipart/form-data">
-                    <div class="mb-3">
-                        <label class="form-label">Username:</label>
-                        <input type="text" name="username" class="form-control" value="{{ user.username }}" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Email:</label>
-                        <input type="email" name="email" class="form-control" value="{{ user.email }}">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Bio:</label>
-                        <textarea name="bio" class="form-control">{{ user.bio }}</textarea>
-                    </div>
-
-                    <!-- Display Daily Calories and Macronutrients on Profile -->
-                    <h3 class="mt-4">Diet Information</h3>
-                    <p><strong>Daily Calories:</strong> {{ user.daily_calories }}</p>
-                    <p><strong>Protein Grams:</strong> {{ user.protein_grams }}</p>
-                    <p><strong>Fat Grams:</strong> {{ user.fat_grams }}</p>
-                    <p><strong>Carbs Grams:</strong> {{ user.carbs_grams }}</p>                    
-                    
-
-                    <!-- Personal Preferences -->
-                    <div class="mb-3">
-                        <label class="form-label">Cuisines:</label>
-                        <div class="d-flex flex-column">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="cuisines[]" value="Italian" 
-                                    {% if user.cuisines and "Italian" in user.cuisines %}checked{% endif %}>
-                                <label class="form-check-label">Italian</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="cuisines[]" value="Chinese" 
-                                    {% if user.cuisines and "Chinese" in user.cuisines %}checked{% endif %}>
-                                <label class="form-check-label">Chinese</label>
-                            </div>
-                        </div>
-                    </div>
-                
-                    <div class="mb-3">
-                        <label class="form-label">Allergies:</label>
-                        <div class="d-flex flex-column">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="allergies[]" value="Peanuts" 
-                                    {% if user.allergies and "Peanuts" in user.allergies %}checked{% endif %}>
-                                <label class="form-check-label">Peanuts</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="allergies[]" value="Dairy" 
-                                    {% if user.allergies and "Dairy" in user.allergies %}checked{% endif %}>
-                                <label class="form-check-label">Dairy</label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Dietary Restrictions:</label>
-                        <div class="d-flex flex-wrap">
-                            <div class="form-check me-3">
-                                <input class="form-check-input" type="checkbox" name="dietary_restrictions[]" value="Low Salt" 
-                                    {% if user.dietary_restrictions and "Low Salt" in user.dietary_restrictions %}checked{% endif %}>
-                                <label class="form-check-label">Low Salt</label>
-                            </div>
-                            <div class="form-check me-3">
-                                <input class="form-check-input" type="checkbox" name="dietary_restrictions[]" value="Low Sugar" 
-                                    {% if user.dietary_restrictions and "Low Sugar" in user.dietary_restrictions %}checked{% endif %}>
-                                <label class="form-check-label">Low Sugar</label>
-                            </div>
-                            <div class="form-check me-3">
-                                <input class="form-check-input" type="checkbox" name="dietary_restrictions[]" value="Low Fat" 
-                                    {% if user.dietary_restrictions and "Low Fat" in user.dietary_restrictions %}checked{% endif %}>
-                                <label class="form-check-label">Low Fat</label>
-                            </div>
-                            <div class="form-check me-3">
-                                <input class="form-check-input" type="checkbox" name="dietary_restrictions[]" value="Gluten Free" 
-                                    {% if user.dietary_restrictions and "Gluten Free" in user.dietary_restrictions %}checked{% endif %}>
-                                <label class="form-check-label">Gluten Free</label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Profile Picture Upload -->
-                    <div class="mb-3">
-                        <label class="form-label">Profile Picture:</label>
-                        <input type="file" name="profile_pic" class="form-control">
-                    </div>
-
-                    <button type="submit" class="btn btn-primary w-100">Save Profile Changes</button>
-                </form>   
-                
-
-                <!-- Change Password Section -->
-                <div class="mt-4">
-                    <button type="button" class="btn btn-warning w-100" data-bs-toggle="collapse" data-bs-target="#changePasswordForm">
-                        Change Password
-                    </button>
-                    <div id="changePasswordForm" class="collapse">
-                        <form action="{{ url_for('change_password') }}" method="POST">
-                            <div class="mb-3">
-                                <label class="form-label">Current Password:</label>
-                                <input type="password" name="current_password" class="form-control" required>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">New Password:</label>
-                                <input type="password" name="new_password" class="form-control" required>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Confirm New Password:</label>
-                                <input type="password" name="confirm_new_password" class="form-control" required>
-                            </div>
-                            <button type="submit" class="btn btn-success w-100">Change Password</button>
-                        </form>
-                    </div>
-                </div>
-
-                <a href="/" class="btn btn-secondary w-100 mt-2">Back to Home</a>
+            <!-- Profile Picture -->
+            <div class="text-center mb-3">
+                <img src="{{ url_for('static', filename='uploads/' + user.profile_pic) }}" alt="Profile Picture" class="rounded-circle" width="100">
             </div>
+
+            <!-- Profile Form -->
+            <form action="{{ url_for('profile') }}" method="POST" enctype="multipart/form-data">
+                <div class="mb-3">
+                    <label class="form-label">Username:</label>
+                    <input type="text" name="username" class="form-control" value="{{ user.username }}" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Email:</label>
+                    <input type="email" name="email" class="form-control" value="{{ user.email }}">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Bio:</label>
+                    <textarea name="bio" class="form-control">{{ user.bio }}</textarea>
+                </div>
+
+                <!-- Diet Information -->
+                <h3 class="mt-4">Diet Information</h3>
+                <p><strong>Daily Calories:</strong> {{ user.daily_calories }}</p>
+                <p><strong>Protein Grams:</strong> {{ user.protein_grams }}</p>
+                <p><strong>Fat Grams:</strong> {{ user.fat_grams }}</p>
+                <p><strong>Carbs Grams:</strong> {{ user.carbs_grams }}</p>                    
+
+                <!-- Preferences -->
+                <div class="mb-3">
+                    <label class="form-label">Cuisines:</label>
+                    <div class="d-flex flex-column">
+                        {% for cuisine in ["Italian", "Chinese"] %}
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="cuisines[]" value="{{ cuisine }}"
+                                {% if user.cuisines and cuisine in user.cuisines %}checked{% endif %}>
+                            <label class="form-check-label">{{ cuisine }}</label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Allergies:</label>
+                    <div class="d-flex flex-column">
+                        {% for allergy in ["Peanuts", "Dairy"] %}
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="allergies[]" value="{{ allergy }}"
+                                {% if user.allergies and allergy in user.allergies %}checked{% endif %}>
+                            <label class="form-check-label">{{ allergy }}</label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Dietary Restrictions:</label>
+                    <div class="d-flex flex-wrap">
+                        {% for restriction in ["Low Salt", "Low Sugar", "Low Fat", "Gluten Free"] %}
+                        <div class="form-check me-3">
+                            <input class="form-check-input" type="checkbox" name="dietary_restrictions[]" value="{{ restriction }}"
+                                {% if user.dietary_restrictions and restriction in user.dietary_restrictions %}checked{% endif %}>
+                            <label class="form-check-label">{{ restriction }}</label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Profile Picture Upload -->
+                <div class="mb-3">
+                    <label class="form-label">Profile Picture:</label>
+                    <input type="file" name="profile_pic" class="form-control">
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100">Save Profile Changes</button>
+            </form>   
+
+            <!-- Change Password Section -->
+            <div class="mt-4">
+                <button type="button" class="btn btn-warning w-100" data-bs-toggle="collapse" data-bs-target="#changePasswordForm">
+                    Change Password
+                </button>
+                <div id="changePasswordForm" class="collapse">
+                    <form action="{{ url_for('change_password') }}" method="POST">
+                        <div class="mb-3">
+                            <label class="form-label">Current Password:</label>
+                            <input type="password" name="current_password" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">New Password:</label>
+                            <input type="password" name="new_password" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Confirm New Password:</label>
+                            <input type="password" name="confirm_new_password" class="form-control" required>
+                        </div>
+                        <button type="submit" class="btn btn-success w-100">Change Password</button>
+                    </form>
+                </div>
+            </div>
+
+            <a href="/" class="btn btn-secondary w-100 mt-2">Back to Home</a>
         </div>
     </div>
+</div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+{% endblock %}
