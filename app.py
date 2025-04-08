@@ -138,11 +138,16 @@ def profile():
 @login_required
 def add_member():
     name = request.form.get('member_name')
+    print(f"Form submitted with name: {name}")  # Add this line
+
     if name:
         new_member = Member(name=name, user_id=current_user.id)
         db.session.add(new_member)
         db.session.commit()
+        print("Member added to DB.")  # Add this line
         flash(f"Added member: {name}", "success")
+    else:
+        print("No name provided!")  # Add this line
     return redirect(url_for('profile'))
 
 
