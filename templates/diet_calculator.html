@@ -20,19 +20,11 @@
             <!-- Save to Profile Button -->
             <form method="POST" action="{{ url_for('diet_calculator') }}">
                 <input type="hidden" name="save_to_profile" value="true">
-                <div class="mb-3">
-                    <label>Select Member to Save:</label>
-                    <select name="member_id" class="form-control" required>
-                        {% for member in current_user.members %}
-                        <option value="{{ member.id }}">{{ member.name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <button type="submit" class="btn btn-success w-100 mt-2">Save to Profile</button>
-            </form>            
+                <button type="submit" class="btn btn-success w-100 mt-4">Save to Profile</button>                
+            </form>
         </div>
         {% endif %}
-        
+
         <form id="diet-form" method="POST">
             <!-- Weight, Height, Age, Gender, Goal, and Physical Activity -->
             <div class="mb-3">
@@ -71,7 +63,7 @@
                     <option value="intense">Intense Activity (6-7 days/week)</option>
                 </select>
             </div>
-            
+
             <!-- Optional Inputs -->
             <div class="optional-inputs">
                 <div class="mb-3">
@@ -99,7 +91,7 @@
                     <input type="number" id="carbs" name="carbs" class="form-control" value="40">
                 </div>
             </div>
-            
+
             <!-- Metrics Dropdown (kg/cm or lbs/inches) -->
             <div class="mb-3">
                 <label for="metric" class="form-label">Unit System:</label>
@@ -108,7 +100,7 @@
                     <option value="imperial">Imperial (lbs, inches)</option>
                 </select>
             </div>
-            
+
             <!-- Submit Button -->
             <button type="submit" class="btn btn-outline-primary btn-block">Calculate</button>
         </form>

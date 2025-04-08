@@ -17,16 +17,11 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # =================== AUTHENTICATION ===================
 # Initialize Database
-db = SQLAlchemy()
+db = SQLAlchemy(app)
 
 # Initialize LoginManager
 login_manager = LoginManager()
 login_manager.login_view = 'login'
-
-# Bind db to the Flask app
-db.init_app(app)
-
-# Initialize LoginManager
 login_manager.init_app(app)
 
 # User Model
@@ -38,23 +33,14 @@ class User(UserMixin, db.Model):
     bio = db.Column(db.Text, nullable=True)
     profile_pic = db.Column(db.String(300), nullable=True, default="default.jpg")
 
-    members = db.relationship('Member', backref='user', lazy=True)
-    
-# Member Model
-class Member(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    name = db.Column(db.String(150), nullable=False)
-    
-    # Diet Info
+    # Add new fields for daily calorie intake and macronutrients
     daily_calories = db.Column(db.Float, nullable=True)
     protein_grams = db.Column(db.Float, nullable=True)
     fat_grams = db.Column(db.Float, nullable=True)
     carbs_grams = db.Column(db.Float, nullable=True)
 
-    # Preferences
-    cuisines = db.Column(db.Text, nullable=True, default="[]")
-    allergies = db.Column(db.Text, nullable=True, default="[]")
+    cuisines = db.Column(db.Text, nullable=True, default="[]")  # Store as JSON string
+    allergies = db.Column(db.Text, nullable=True, default="[]") 
     dietary_restrictions = db.Column(db.Text, nullable=True, default="[]")
 
 
@@ -84,7 +70,7 @@ def register():
         db.session.commit()
         flash('Registration successful! You can now log in.', 'success')
         return redirect(url_for('login'))
-    
+
     return render_template('register.html')
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -92,7 +78,7 @@ def login():
     if request.method == 'POST':
         username = request.form['username'].lower()  # Convert to lowercase
         password = request.form['password']
-        
+
         user = User.query.filter_by(username=username).first()
         if user and check_password_hash(user.password, password):
             login_user(user)
@@ -100,7 +86,7 @@ def login():
             return redirect(url_for('profile'))
         else:
             flash('Invalid credentials.', 'danger')
-    
+
     return render_template('login.html')
 
 @app.route('/logout')
@@ -114,42 +100,35 @@ def logout():
 @app.route('/profile', methods=['GET', 'POST'])
 @login_required
 def profile():
+    if current_user.cuisines is None:
+        current_user.cuisines = "[]"
+    if current_user.allergies is None:
+        current_user.allergies = "[]"
+    if current_user.dietary_restrictions is None:
+        current_user.dietary_restrictions = "[]"
+
     if request.method == "POST":
-        # Update main user info
+        # Handle Profile Update
         current_user.username = request.form.get("username")
         current_user.email = request.form.get("email")
         current_user.bio = request.form.get("bio")
 
         if "profile_pic" in request.files:
             profile_pic = request.files["profile_pic"]
-            if profile_pic and profile_pic.filename != "":
-                filename = f"{current_user.id}_{secure_filename(profile_pic.filename)}"
-                profile_pic.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-                current_user.profile_pic = filename
+            if profile_pic.filename != "":
+                pic_filename = f"{current_user.id}_{secure_filename(profile_pic.filename)}"
+                profile_pic.save(os.path.join(app.config['UPLOAD_FOLDER'], pic_filename))
+                current_user.profile_pic = pic_filename
+
+        current_user.cuisines = str(request.form.getlist("cuisines[]"))
+        current_user.allergies = str(request.form.getlist("allergies[]"))
+        current_user.dietary_restrictions = str(request.form.getlist("dietary_restrictions[]"))
 
         db.session.commit()
-        flash("Profile updated!", "success")
+        flash("Profile updated successfully!", "success")
         return redirect(url_for("profile"))
 
-    members = current_user.members
-    return render_template("profile.html", user=current_user, members=members)
-
-@app.route('/add_member', methods=['POST'])
-@login_required
-def add_member():
-    name = request.form.get('member_name')
-    print(f"Form submitted with name: {name}")  # Add this line
-
-    if name:
-        new_member = Member(name=name, user_id=current_user.id)
-        db.session.add(new_member)
-        db.session.commit()
-        print("Member added to DB.")  # Add this line
-        flash(f"Added member: {name}", "success")
-    else:
-        print("No name provided!")  # Add this line
-    return redirect(url_for('profile'))
-
+    return render_template("profile.html", user=current_user)
 
 @app.route('/change_password', methods=['POST'])
 @login_required
@@ -186,13 +165,14 @@ def diet_calculator():
 
     if request.method == 'POST':
         print(f"Form data: {request.form}")  # Print all the form data
-        
+
         weight = request.form.get('weight')
         if weight is None:
             flash("Weight is required.", "danger")
             return redirect(url_for('diet_calculator'))
 
         weight = float(weight)
+
         height = float(request.form['height'])
         age = int(request.form['age'])
         gender = request.form['gender']
@@ -242,11 +222,18 @@ def diet_calculator():
         current_user.fat_grams = fat_grams
         current_user.carbs_grams = carbs_grams
 
+
+
+
+
+
+
         # Debug print for db
         print(f"Daily Calories: {current_user.daily_calories}")
         print(f"Protein (grams): {current_user.protein_grams}")
         print(f"Fat (grams): {current_user.fat_grams}")
         print(f"Carbs (grams): {current_user.carbs_grams}")
+
 
 
         try:
@@ -265,21 +252,11 @@ def diet_calculator():
             flash(f"Error saving data: {e}", "danger")
             db.session.rollback()  # Rollback any changes if there's an error
             print(f"Error: {e}")  # Additional print for debugging
-        
+
         # Now, handle the save to profile (the button click)
         if request.form.get("save_to_profile"):
             print(f"Save to profile button clicked!")
 
-            member_id = request.form.get('member_id')
-            if member_id:
-                member = Member.query.filter_by(id=int(member_id), user_id=current_user.id).first()
-                if member:
-                    member.daily_calories = tdee
-                    member.protein_grams = protein_grams
-                    member.fat_grams = fat_grams
-                    member.carbs_grams = carbs_grams
-                    db.session.commit()
-                    flash(f"Diet info saved for {member.name}!", "success")
             
             # Save the values from the database to user's profile
             try:
@@ -306,7 +283,7 @@ def diet_calculator():
             fat_grams=fat_grams, 
             carbs_grams=carbs_grams
         )
-    
+
     return render_template('diet_calculator.html')
 
 # =================== GROCERY LIST ===================
@@ -525,8 +502,8 @@ def recipe_lookup():
 #         reset_database()  # Call this function ONCE to reset
 #     app.run(debug=True)
 
-# Initialize Database
+# ------------------ INIT DB ------------------ #
 if __name__ == '__main__':
     with app.app_context():
-        db.create_all()
+        db.create_all()  
     app.run(debug=True)

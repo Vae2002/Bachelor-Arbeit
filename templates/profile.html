@@ -1,43 +1,7 @@
+
 {% extends "base.html" %}
 {% block title %}Profile{% endblock %}
 {% block content %}
-
-<style>
-    .btn btn-secondary dropdown-toggle {
-      background-color: #04AA6D;
-      color: white;
-      padding: 16px;
-      font-size: 16px;
-      border: none;
-    }
-    
-    .dropdown {
-      position: relative;
-      display: inline-block;
-    }
-    
-    .dropdown-menu {
-      display: none;
-      position: absolute;
-      background-color: #f1f1f1;
-      min-width: 160px;
-      box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-      z-index: 1;
-    }
-    
-    .dropdown-menu a {
-      color: black;
-      padding: 12px 16px;
-      text-decoration: none;
-      display: block;
-    }
-    
-    .dropdown-menu a:hover {background-color: #ddd;}
-    
-    .dropdown:hover .dropdown-menu {display: block;}
-    
-    .dropdown:hover .btn btn-secondary dropdown-toggle {background-color: #3e8e41;}
-    </style>
 
 <div class="container mt-5">
     <h2 class="text-center">User Profile</h2>
@@ -61,50 +25,30 @@
                     <label class="form-label">Email:</label>
                     <input type="email" name="email" class="form-control" value="{{ user.email }}">
                 </div>
+
                 <div class="mb-3">
                     <label class="form-label">Bio:</label>
                     <textarea name="bio" class="form-control">{{ user.bio }}</textarea>
                 </div>
 
+
                 <!-- Select or Add Member -->
                 <div class="mb-3">
-                    <label class="form-label">Select Member:</label>
-                    <pre>{{ members | tojson }}</pre>
-                      
+
                     <div class="dropdown">
-                        <button class="btn btn-secondary dropdown-toggle" type="button" id="testDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                            Dropdown button
-                          </button>
-                          <ul class="dropdown-menu" aria-labelledby="testDropdown">
-                            <li><a class="dropdown-item" href="#">Test 1</a></li>
-                            <li><a class="dropdown-item" href="#">Test 2</a></li>
-                            <li><a class="dropdown-item" href="#">Test 3</a></li>
+                        <button class="dropbtn" type="button" id="testDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            Select Member
+                        </button>
+                        
+                        <div class="dropdown-content" aria-labelledby="testDropdown">
+                            <a href="#">Link 1</a>
+                            <a href="#">Link 2</a>
+                            <a href="#">Link 3</a>
 
-                            <li><hr class="dropdown-divider"></li>
-
-                            <li>
-                                <a class="dropdown-item text-success d-flex align-items-center gap-2" data-bs-toggle="collapse" href="#addMemberForm" role="button" aria-expanded="false" aria-controls="addMemberForm">
-                                    <span class="fs-5">➕</span> Add Member
-                                </a>
-                                </li>
-
-                                </ul> 
-
-                                <div class="collapse px-3 py-2" id="addMemberForm">
-                                    <form method="POST" action="{{ url_for('add_member') }}">
-                                        <div class="input-group">
-                                            <input type="text" name="member_name" class="form-control" placeholder="New member name" required>
-                                            <button type="submit" class="btn btn-success">Add</button>
-                                        </div>
-                                    </form>
-                                </div>
-                            </li>
-                        </ul>
+                            <hr class="dropdown-divider">
+                        </div>
                     </div>
                 </div>
-
-
-
 
                 <!-- Diet Information -->
                 <h3 class="mt-4">Diet Information</h3>
@@ -191,7 +135,5 @@
         </div>
     </div>
 </div>
-
-<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
 
 {% endblock %}

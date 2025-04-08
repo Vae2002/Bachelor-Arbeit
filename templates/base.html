@@ -36,6 +36,41 @@
             color: white !important;
             font-size: 1.1rem;
         }
+
+        .dropbtn {
+        background-color: #04AA6D;
+        color: white;
+        padding: 16px;
+        font-size: 16px;
+        border: none;
+        }
+
+        .dropdown {
+        position: relative;
+        display: inline-block;
+        }
+
+        .dropdown-content {
+        display: none;
+        position: absolute;
+        background-color: #f1f1f1;
+        min-width: 160px;
+        box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+        z-index: 1;
+        }
+
+        .dropdown-content a {
+        color: black;
+        padding: 12px 16px;
+        text-decoration: none;
+        display: block;
+        }
+
+        .dropdown-content a:hover {background-color: #ddd;}
+
+        .dropdown:hover .dropdown-content {display: block;}
+
+        .dropdown:hover .dropbtn {background-color: #3e8e41;}
     </style>
 </head>
 <body>
@@ -48,16 +83,17 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ml-auto">
+                <ul class="navbar-nav ms-auto"> <!-- Changed ml-auto to ms-auto -->
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('recipe_lookup') }}">Recipe Lookup</a>
-                    </li>                    
+                    </li> 
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('diet_calculator') }}">Diet Calculator</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('grocery') }}">Grocery List</a>
                     </li>
+
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('profile') }}">
                             {% if current_user.profile_pic %}
@@ -69,6 +105,7 @@
                             {% endif %}
                         </a>
                     </li>
+
                     <li class="nav-item">
                         <a class="nav-link btn btn-danger text-white px-3 py-1" href="{{ url_for('logout') }}">Logout</a>
                     </li>
@@ -98,7 +135,7 @@
 
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ENjdO4Dr2bkBIFxQpeoH5PNZfJ6Vx1xv4CkzEEz5L6fKGEqtr5r3Kj7P9yUgG8wG" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 
 </body>
