@@ -372,38 +372,47 @@ def rename_item(item_id):
 
 # =================== RECIPES ===================
 import os
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_from_directory
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_from_directory, send_file
 import pandas as pd
+from PIL import Image
+import io
 
-# Assuming the path to your CSV is given correctly.
 RECIPES_CSV_PATH = 'datasets/recipes_with_images.csv'
-IMAGE_FOLDER_PATH = 'C:/Users/vae.tiolamon/Documents/DHBW Folder/DHBW 6. Semester/Food Images/Food Images/'
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+IMAGE_FOLDER_PATH = os.path.join(BASE_DIR, 'Food Images')
 
 # Load CSV into DataFrame using pandas
 def load_recipes():
     df = pd.read_csv(RECIPES_CSV_PATH)
     recipes = []
     for index, row in df.iterrows():
+        image_filename = row['Image_Name'].strip() + '.jpg'
+        
+        # Build relative image path for static folder
+        image_path = os.path.join('static', 'food_images', image_filename)  # Path relative to the 'static' folder
+        
+        # Check if the image exists inside the 'static/food_images' folder
+        full_image_path = os.path.join(BASE_DIR, image_path)
+
+        # print(full_image_path)
+        
+        if os.path.exists(full_image_path):
+            image = image_filename
+        else:
+            image = 'default.jpg'  # Fallback if the image is not found
+
         recipe = {
             "name": row['Title'],
-            "ingredients": row['Cleaned_Ingredients'].split(','), 
-            "image": row['Image_Name']
+            "ingredients": row['Cleaned_Ingredients'].split(','),
+            "image": image
         }
         recipes.append(recipe)
+        # print(f"Checking: {full_image_path} -> {os.path.exists(full_image_path)}")
+
     return recipes
 
 # Pre-load recipes into memory
 recipes = load_recipes()
-
-# Helper function to serve images
-@app.route('/images/<filename>')
-def serve_image(filename):
-    return send_from_directory(IMAGE_FOLDER_PATH, filename)
-
-# Helper function to serve images
-@app.route('/images/<filename>')
-def send_image(filename):  # Renamed the function to avoid conflicts
-    return send_from_directory(IMAGE_FOLDER_PATH, filename)
 
 # Helper function for pagination
 def paginate(items, page, per_page=9):
