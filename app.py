@@ -377,7 +377,7 @@ import pandas as pd
 from PIL import Image
 import io
 
-RECIPES_CSV_PATH = 'datasets/recipes_with_images.csv'
+RECIPES_CSV_PATH = 'datasets/recipes_with_images_and_nutrients.csv'
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 IMAGE_FOLDER_PATH = os.path.join(BASE_DIR, 'Food Images')
 
@@ -403,7 +403,8 @@ def load_recipes():
 
         recipe = {
             "name": row['Title'],
-            "ingredients": row['Cleaned_Ingredients'].split(','),
+            "calories": row['Calories'],
+            "ingredients": [ing.strip().replace('\n', ' ') for ing in row['Cleaned_Ingredients'].split(',')],
             "image": image
         }
         recipes.append(recipe)
