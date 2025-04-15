@@ -37,10 +37,18 @@
                         <div class="collapse" id="nutrients{{ loop.index }}">
                             <div class="card card-body">
                                 
-                                <!-- Macro Nutrients Button -->
-                                <button class="btn btn-outline-warning mb-2" type="button" data-bs-toggle="collapse" data-bs-target="#macro{{ loop.index }}" aria-expanded="false" aria-controls="macro{{ loop.index }}">
-                                    Macro Nutrients
-                                </button>
+                                <!-- Wrap buttons in a flex container -->
+                                <div class="d-flex justify-content-center gap-2 mb-2">
+                                    <!-- Macro Nutrients Button -->
+                                    <button class="btn btn-outline-warning" type="button" data-bs-toggle="collapse" data-bs-target="#macro{{ loop.index }}" aria-expanded="false" aria-controls="macro{{ loop.index }}">
+                                        Macro Nutrients
+                                    </button>
+
+                                    <!-- Micro Nutrients Button -->
+                                    <button class="btn btn-outline-warning" type="button" data-bs-toggle="collapse" data-bs-target="#micro{{ loop.index }}" aria-expanded="false" aria-controls="micro{{ loop.index }}">
+                                        Micro Nutrients
+                                    </button>
+                                </div>
 
                                 <!-- Macro Nutrients Content -->
                                 <div class="collapse" id="macro{{ loop.index }}">
@@ -54,11 +62,6 @@
                                         </ol>
                                     </div>
                                 </div>
-
-                                <!-- Micro Nutrients Button -->
-                                <button class="btn btn-outline-warning mb-2" type="button" data-bs-toggle="collapse" data-bs-target="#micro{{ loop.index }}" aria-expanded="false" aria-controls="micro{{ loop.index }}">
-                                    Micro Nutrients
-                                </button>
 
                                 <!-- Micro Nutrients Content -->
                                 <div class="collapse" id="micro{{ loop.index }}">
