@@ -4,6 +4,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
+import re
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -401,12 +402,71 @@ def load_recipes():
         else:
             image = 'default.jpg'  # Fallback if the image is not found
 
+        def split_instructions(text):
+            if not isinstance(text, str):
+                return []
+
+            # Step 1: Replace special characters
+            text = text.replace('“', '"').replace('”', '"').replace('’', "'").replace('\n', ' ')
+
+            # Step 2: Protect common abbreviations
+            abbreviations = {
+                "tsp.": "tsp_placeholder",
+                "tbsp.": "tbsp_placeholder",
+                "oz.": "oz_placeholder",
+                "fl. oz.": "floz_placeholder",
+                "lb.": "lb_placeholder",
+                "pt.": "pt_placeholder",
+                "qt.": "qt_placeholder",
+                "gal.": "gal_placeholder"
+            }
+
+            for abbr, placeholder in abbreviations.items():
+                text = text.replace(abbr, placeholder)
+
+            # Step 3: Split by sentence-ending punctuation followed by space
+            steps = re.split(r'(?<=[.!?])\s+', text)
+
+            # Step 4: Restore abbreviations and clean whitespace
+            restored_steps = []
+            for step in steps:
+                for abbr, placeholder in abbreviations.items():
+                    step = step.replace(placeholder, abbr)
+                restored_steps.append(step.strip())
+
+            return [s for s in restored_steps if s]
+        
+        import re
+        import math
+
+        def parse_nutrients(text):
+            tuples = []
+            pattern = r"\('([^']+)',\s*([^)]+)\)"  # Match tuples like ('Carbs', 123.4)
+
+            for match in re.findall(pattern, text):
+                key = match[0].strip()
+                val_str = match[1].strip()
+                try:
+                    val = float(val_str)
+                    if not math.isnan(val):
+                        tuples.append((key, val))
+                except ValueError:
+                    continue  # skip if not a number
+
+            return tuples
+        
+
+        # Modify your recipe dict
         recipe = {
             "name": row['Title'],
             "calories": row['Calories'],
+            "macro": parse_nutrients(row['Macro_Nutrients']),
+            "micro": parse_nutrients(row['Micro_Nutrients']),
             "ingredients": [ing.strip().replace('\n', ' ') for ing in row['Cleaned_Ingredients'].split(',')],
+            "instructions": split_instructions(row['Instructions']),
             "image": image
         }
+
         recipes.append(recipe)
         # print(f"Checking: {full_image_path} -> {os.path.exists(full_image_path)}")
 

@@ -27,12 +27,58 @@
                     <div class="card-body">
                         <h4 class="card-title">{{ recipe.name }}</h4>
                         <h5 class="card-text">Calories: <strong>{{ recipe.calories }}</strong>kcal</h5>
-                        <p style="text-align: left;" class="card-text"><strong>Ingredients:</strong></p>
-                        <ul style="text-align: left;">
-                            {% for ingredient in recipe.ingredients %}
-                                <li>{{ ingredient }}</li>
-                            {% endfor %}
-                        </ul>                     
+
+                        <!-- Nutrient Toggle Button -->
+                        <button class="btn btn-outline-warning mb-2" type="button" data-bs-toggle="collapse" data-bs-target="#nutrients{{ loop.index }}" aria-expanded="false" aria-controls="nutrients{{ loop.index }}">
+                            Show Nutrients
+                        </button>
+
+                        <!-- Collapsible Nutrients -->                        
+                        <div class="collapse" id="nutrients{{ loop.index }}">
+                            <div class="card card-body">
+                                <ol style="text-align: left;">
+                                    {% for nutrient, value in recipe.macro %}
+                                        {% if value is not none %}
+                                            <li><strong>{{ nutrient }}:</strong> {{ value }}</li>
+                                        {% endif %}
+                                    {% endfor %}
+                                </ol>
+                            </div>
+                        </div>
+
+
+                        <!-- Ingredients Toggle Button -->
+                        <button class="btn btn-outline-primary mb-2" type="button" data-bs-toggle="collapse" data-bs-target="#ingredients{{ loop.index }}" aria-expanded="false" aria-controls="ingredients{{ loop.index }}">
+                            Show Ingredients
+                        </button>
+
+                        <!-- Collapsible Content -->
+                        <div class="collapse" id="ingredients{{ loop.index }}">
+                            <div class="card card-body">
+                                <ul style="text-align: left;">
+                                    {% for ingredient in recipe.ingredients %}
+                                        <li>{{ ingredient }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>    
+                        
+                        <!-- Instructions Toggle Button -->
+                        <button class="btn btn-outline-warning mb-2" type="button" data-bs-toggle="collapse" data-bs-target="#instructions{{ loop.index }}" aria-expanded="false" aria-controls="instructions{{ loop.index }}">
+                            Show Instructions
+                        </button>
+
+                        <!-- Collapsible Instructions -->
+                        <div class="collapse" id="instructions{{ loop.index }}">
+                            <div class="card card-body">
+                                <ol style="text-align: left;">
+                                    {% for step in recipe.instructions %}
+                                        <li>{{ step }}</li>
+                                    {% endfor %}
+                                </ol>
+                            </div>
+                        </div>
+
                     </div>                    
                 </div>
             </div>            
