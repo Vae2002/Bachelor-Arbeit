@@ -223,12 +223,6 @@ def diet_calculator():
         current_user.fat_grams = fat_grams
         current_user.carbs_grams = carbs_grams
 
-
-
-
-
-
-
         # Debug print for db
         print(f"Daily Calories: {current_user.daily_calories}")
         print(f"Protein (grams): {current_user.protein_grams}")
@@ -556,6 +550,13 @@ def recipe_lookup():
         total_pages=total_pages,
         pagination=pagination
     )
+
+# =================== MEAL PLANNER ===================
+@app.route('/meal_planner', methods=['GET', 'POST'])
+@login_required
+
+def meal_planner():
+    return render_template('meal_planner.html')
 
 # =================== DATABASE ===================
 

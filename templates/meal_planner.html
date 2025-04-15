@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+
+{% block title %}Home | Kitchen App{% endblock %}
+
+{% block content %}
+
+    <div class="container mt-4"> <h2 class="text-center mb-4">Weekly Meal Planner</h2> 
+        <form method="POST"> 
+            <div class="row mt-4 justify-content-center"> 
+                <h3 class="text-center mb-3">Diet Information</h3> 
+                <div class="col-md-3 mb-3"> 
+                    <div class="card text-center shadow-sm"> 
+                        <div class="card-body"> 
+                            <h6 class="card-title"><strong>Daily Calories</strong></h6> 
+                            <p class="card-text fs-5">{{ current_user.daily_calories or "—" }}</p> 
+                        </div> 
+                    </div> 
+                </div> 
+
+                <div class="col-md-3 mb-3"> 
+                    <div class="card text-center shadow-sm"> 
+                        <div class="card-body"> 
+                            <h6 class="card-title"><strong>Protein</strong></h6> 
+                            <p class="card-text fs-5">{{ current_user.protein_grams or "—" }} g</p> 
+                        </div> 
+                    </div> 
+                </div> 
+                
+                <div class="col-md-3 mb-3"> 
+                    <div class="card text-center shadow-sm"> 
+                        <div class="card-body"> 
+                            <h6 class="card-title"><strong>Fats</strong></h6> 
+                            <p class="card-text fs-5">{{ current_user.fat_grams or "—" }} g</p> 
+                        </div> 
+                    </div> 
+                </div> 
+                
+                <div class="col-md-3 mb-3"> 
+                    <div class="card text-center shadow-sm">
+                        <div class="card-body"> 
+                            <h6 class="card-title"><strong>Carbs</strong></h6> 
+                            <p class="card-text fs-5">{{ current_user.carbs_grams or "—" }} g</p> 
+                        </div> 
+                    </div>
+                </div> 
+            </div>
+
+            <div class="row mb-3"> 
+                <div class="col-md-4 mx-auto">
+                    <label for="selected_week" class="form-label"><strong>Select Week</strong></label> 
+                    <script>
+                        // Helper function to format dates as "Mo Apr 21, 2025"
+                        function formatDate(date) {
+                            const options = { weekday: 'short', year: 'numeric', month: 'short', day: '2-digit' };
+                            return date.toLocaleDateString('en-US', options);
+                        }
+                    
+                        // Get the Monday of the current week
+                        function getThisWeekMonday(date) {
+                            const day = date.getDay();
+                            const diff = (day === 0 ? -6 : 1 - day); // if Sunday, go back to previous Monday
+                            const thisMonday = new Date(date);
+                            thisMonday.setDate(date.getDate() + diff);
+                            return thisMonday;
+                        }
+                    
+                        function populateWeekOptions() {
+                            const select = document.getElementById('selected_week');
+                            const today = new Date();
+                            let monday = getThisWeekMonday(today);
+                    
+                            for (let i = 0; i < 8; i++) {
+                                const startOfWeek = new Date(monday);
+                                const endOfWeek = new Date(monday);
+                                endOfWeek.setDate(startOfWeek.getDate() + 6);
+                    
+                                const option = document.createElement('option');
+                                option.value = `${startOfWeek.toISOString().slice(0, 10)} to ${endOfWeek.toISOString().slice(0, 10)}`;
+                                option.text = `${formatDate(startOfWeek)} - ${formatDate(endOfWeek)}`;
+                                select.appendChild(option);
+                    
+                                // Move to the next Monday
+                                monday.setDate(monday.getDate() + 7);
+                            }
+                        }
+                    
+                        // Populate the dropdown when the page loads
+                        document.addEventListener('DOMContentLoaded', populateWeekOptions);
+                    </script>                    
+                    <select name="selected_week" id="selected_week" class="form-select"> 
+                    </select> 
+                </div>
+            </div>
+            
+
+            <div class="container mt-4">
+                <!-- Monday to Thursday Section -->
+                <div class="row g-4">
+                    <div class="col-md-3">
+                        <label class="form-label"><strong>Monday</strong></label>
+                        <textarea name="monday_breakfast" class="form-control mb-2" rows="2" placeholder="Breakfast (e.g. Oatmeal)"></textarea>
+                        <textarea name="monday_lunch" class="form-control mb-2" rows="2" placeholder="Lunch (e.g. Grilled chicken)"></textarea>
+                        <textarea name="monday_snack" class="form-control mb-2" rows="2" placeholder="Snack (e.g. Yogurt)"></textarea>
+                        <textarea name="monday_dinner" class="form-control mb-2" rows="2" placeholder="Dinner (e.g. Stir fry)"></textarea>
+                        <textarea name="monday_extra" class="form-control mb-2" rows="2" placeholder="Extra (e.g. Dessert, drink, etc.)"></textarea>
+                    </div>
+            
+                    <div class="col-md-3">
+                        <label class="form-label"><strong>Tuesday</strong></label>
+                        <textarea name="tuesday_breakfast" class="form-control mb-2" rows="2" placeholder="Breakfast (e.g. Oatmeal)"></textarea>
+                        <textarea name="tuesday_lunch" class="form-control mb-2" rows="2" placeholder="Lunch (e.g. Grilled chicken)"></textarea>
+                        <textarea name="tuesday_snack" class="form-control mb-2" rows="2" placeholder="Snack (e.g. Yogurt)"></textarea>
+                        <textarea name="tuesday_dinner" class="form-control mb-2" rows="2" placeholder="Dinner (e.g. Stir fry)"></textarea>
+                        <textarea name="tuesday_extra" class="form-control mb-2" rows="2" placeholder="Extra (e.g. Dessert, drink, etc.)"></textarea>
+                    </div>
+            
+                    <div class="col-md-3">
+                        <label class="form-label"><strong>Wednesday</strong></label>
+                        <textarea name="wednesday_breakfast" class="form-control mb-2" rows="2" placeholder="Breakfast (e.g. Oatmeal)"></textarea>
+                        <textarea name="wednesday_lunch" class="form-control mb-2" rows="2" placeholder="Lunch (e.g. Grilled chicken)"></textarea>
+                        <textarea name="wednesday_snack" class="form-control mb-2" rows="2" placeholder="Snack (e.g. Yogurt)"></textarea>
+                        <textarea name="wednesday_dinner" class="form-control mb-2" rows="2" placeholder="Dinner (e.g. Stir fry)"></textarea>
+                        <textarea name="wednesday_extra" class="form-control mb-2" rows="2" placeholder="Extra (e.g. Dessert, drink, etc.)"></textarea>
+                    </div>
+            
+                    <div class="col-md-3">
+                        <label class="form-label"><strong>Thursday</strong></label>
+                        <textarea name="thursday_breakfast" class="form-control mb-2" rows="2" placeholder="Breakfast (e.g. Oatmeal)"></textarea>
+                        <textarea name="thursday_lunch" class="form-control mb-2" rows="2" placeholder="Lunch (e.g. Grilled chicken)"></textarea>
+                        <textarea name="thursday_snack" class="form-control mb-2" rows="2" placeholder="Snack (e.g. Yogurt)"></textarea>
+                        <textarea name="thursday_dinner" class="form-control mb-2" rows="2" placeholder="Dinner (e.g. Stir fry)"></textarea>
+                        <textarea name="thursday_extra" class="form-control mb-2" rows="2" placeholder="Extra (e.g. Dessert, drink, etc.)"></textarea>
+                    </div>
+                </div>
+            
+                <!-- Friday-Sunday Section -->
+                <div class="row g-4 mt-4">
+                    <div class="col-md-3">
+                        <label class="form-label"><strong>Friday</strong></label>
+                        <textarea name="friday_breakfast" class="form-control mb-2" rows="2" placeholder="Breakfast (e.g. Oatmeal)"></textarea>
+                        <textarea name="friday_lunch" class="form-control mb-2" rows="2" placeholder="Lunch (e.g. Grilled chicken)"></textarea>
+                        <textarea name="friday_snack" class="form-control mb-2" rows="2" placeholder="Snack (e.g. Yogurt)"></textarea>
+                        <textarea name="friday_dinner" class="form-control mb-2" rows="2" placeholder="Dinner (e.g. Stir fry)"></textarea>
+                        <textarea name="friday_extra" class="form-control mb-2" rows="2" placeholder="Extra (e.g. Dessert, drink, etc.)"></textarea>
+                    </div>
+            
+                    <div class="col-md-3">
+                        <label class="form-label"><strong>Saturday</strong></label>
+                        <textarea name="saturday_breakfast" class="form-control mb-2" rows="2" placeholder="Breakfast (e.g. Oatmeal)"></textarea>
+                        <textarea name="saturday_lunch" class="form-control mb-2" rows="2" placeholder="Lunch (e.g. Grilled chicken)"></textarea>
+                        <textarea name="saturday_snack" class="form-control mb-2" rows="2" placeholder="Snack (e.g. Yogurt)"></textarea>
+                        <textarea name="saturday_dinner" class="form-control mb-2" rows="2" placeholder="Dinner (e.g. Stir fry)"></textarea>
+                        <textarea name="saturday_extra" class="form-control mb-2" rows="2" placeholder="Extra (e.g. Dessert, drink, etc.)"></textarea>
+                    </div>
+            
+                    <div class="col-md-3">
+                        <label class="form-label"><strong>Sunday</strong></label>
+                        <textarea name="sunday_breakfast" class="form-control mb-2" rows="2" placeholder="Breakfast (e.g. Oatmeal)"></textarea>
+                        <textarea name="sunday_lunch" class="form-control mb-2" rows="2" placeholder="Lunch (e.g. Grilled chicken)"></textarea>
+                        <textarea name="sunday_snack" class="form-control mb-2" rows="2" placeholder="Snack (e.g. Yogurt)"></textarea>
+                        <textarea name="sunday_dinner" class="form-control mb-2" rows="2" placeholder="Dinner (e.g. Stir fry)"></textarea>
+                        <textarea name="sunday_extra" class="form-control mb-2" rows="2" placeholder="Extra (e.g. Dessert, drink, etc.)"></textarea>
+                    </div>
+                    
+                    <!-- Buttons Section -->
+                    <div class="col-md-3 d-flex flex-column align-items-end gap-2">
+                        <br><br><br><br><br><br><br><br>
+                        <button type="submit" class="btn btn-primary">Save Plan</button>
+                        <button type="button" class="btn btn-secondary">Edit</button>
+                        <button type="button" class="btn btn-info">Email</button>
+                        <button type="button" class="btn btn-dark">Print</button>
+                    </div>
+                </div>
+            </div>                       
+        </form> 
+    </div>    
+
+{% endblock %}
