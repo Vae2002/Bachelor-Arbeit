@@ -118,26 +118,28 @@
             {% endfor %}
         </div>
 
-        <!-- Pagination Controls -->
-        <div class="pagination">
-            {% if page > 1 %}
-                <a href="{{ url_for('recipe_lookup', page=page-1) }}" class="btn btn-secondary">Previous</a>
-            {% endif %}
-
-            <!-- Page Numbers -->
-            {% for p in pagination %}
-                {% if p == '...' %}
-                    <span class="btn btn-secondary">...</span>
-                {% else %}
-                    <a href="{{ url_for('recipe_lookup', page=p) }}" class="btn {% if p == page %}btn-primary{% else %}btn-secondary{% endif %}">
-                        {{ p }}
-                    </a>
+        <!-- Centered Pagination Controls -->
+        <div class="d-flex justify-content-center mt-4">
+            <div class="pagination">
+                {% if page > 1 %}
+                    <a href="{{ url_for('recipe_lookup', page=page-1) }}" class="btn btn-secondary me-1">Previous</a>
                 {% endif %}
-            {% endfor %}
 
-            {% if page < total_pages %}
-                <a href="{{ url_for('recipe_lookup', page=page+1) }}" class="btn btn-secondary">Next</a>
-            {% endif %}
+                <!-- Page Numbers -->
+                {% for p in pagination %}
+                    {% if p == '...' %}
+                        <span class="btn btn-secondary me-1">...</span>
+                    {% else %}
+                        <a href="{{ url_for('recipe_lookup', page=p) }}" class="btn {% if p == page %}btn-primary{% else %}btn-secondary{% endif %} me-1">
+                            {{ p }}
+                        </a>
+                    {% endif %}
+                {% endfor %}
+
+                {% if page < total_pages %}
+                    <a href="{{ url_for('recipe_lookup', page=page+1) }}" class="btn btn-secondary">Next</a>
+                {% endif %}
+            </div>
         </div>
 
     {% else %}
