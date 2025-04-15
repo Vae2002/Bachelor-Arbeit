@@ -112,6 +112,39 @@
                             </div>
                         </div>
 
+                        <!-- Save Dish Toggle Button -->
+                        <button class="btn btn-outline-success mb-2" type="button" data-bs-toggle="collapse" data-bs-target="#save_dish{{ loop.index }}" aria-expanded="false" aria-controls="save_dish{{ loop.index }}">
+                            Save to Meal Planner
+                        </button>
+
+                        <!-- Save Dish Form -->
+                        <div class="collapse" id="save_dish{{ loop.index }}">
+                            <div class="card card-body">
+                                <form action="{{ url_for('save_to_meal_planner') }}" method="POST">
+                                    <input type="hidden" name="recipe_name" value="{{ recipe.name }}">
+
+                                    <div class="mb-2">
+                                        <label for="day{{ loop.index }}" class="form-label">Day</label>
+                                        <select name="day" id="day{{ loop.index }}" class="form-select">
+                                            {% for day in ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'] %}
+                                                <option value="{{ day }}">{{ day.capitalize() }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="meal{{ loop.index }}" class="form-label">Meal Type</label>
+                                        <select name="meal" id="meal{{ loop.index }}" class="form-select">
+                                            {% for meal in ['breakfast','lunch','dinner','snack','extra'] %}
+                                                <option value="{{ meal }}">{{ meal.capitalize() }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+
+                                    <button type="submit" class="btn btn-success w-100">Save</button>
+                                </form>
+                            </div>
+                        </div>                                
                     </div>                    
                 </div>
             </div>            

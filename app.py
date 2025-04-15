@@ -4,7 +4,8 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-import re
+from datetime import datetime
+from flask import session
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -16,7 +17,8 @@ UPLOAD_FOLDER = 'static/uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# =================== AUTHENTICATION ===================
+# =================== DATABASE ===================
+
 # Initialize Database
 db = SQLAlchemy(app)
 
@@ -44,6 +46,21 @@ class User(UserMixin, db.Model):
     allergies = db.Column(db.Text, nullable=True, default="[]") 
     dietary_restrictions = db.Column(db.Text, nullable=True, default="[]")
 
+
+class MealPlan(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+
+    day = db.Column(db.String(20), nullable=False)          # e.g., "monday"
+    meal_type = db.Column(db.String(20), nullable=False)    # e.g., "lunch", "dinner"
+    recipe_name = db.Column(db.String(255), nullable=False) # e.g., "Grilled Chicken"
+
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Optional: backref to User
+    user = db.relationship('User', backref='meal_plans')
+
+# =================== AUTHENTICATION ===================
 
 # Load user function for Flask-Login
 @login_manager.user_loader
@@ -551,12 +568,40 @@ def recipe_lookup():
         pagination=pagination
     )
 
-# =================== MEAL PLANNER ===================
-@app.route('/meal_planner', methods=['GET', 'POST'])
-@login_required
 
+@app.route('/save_to_meal_planner', methods=['POST'])
+@login_required
+def save_to_meal_planner():
+    recipe_name = request.form['recipe_name']
+    day = request.form['day']
+    meal = request.form['meal']
+
+    # Check if already exists
+    existing = MealPlan.query.filter_by(user_id=current_user.id, day=day, meal_type=meal).first()
+    if existing:
+        existing.recipe_name = recipe_name
+    else:
+        new_entry = MealPlan(user_id=current_user.id, day=day, meal_type=meal, recipe_name=recipe_name)
+        db.session.add(new_entry)
+
+    db.session.commit()
+    return redirect(url_for('meal_planner'))
+
+
+# =================== MEAL PLANNER ===================
+@app.route('/meal_planner')
+@login_required
 def meal_planner():
-    return render_template('meal_planner.html')
+    # Fetch saved meals from the DB
+    saved_meals = MealPlan.query.filter_by(user_id=current_user.id).all()
+    
+    # Map them to day_meal -> recipe_name
+    meal_data = {
+        f"{meal.day}_{meal.meal_type}": meal.recipe_name for meal in saved_meals
+    }
+
+    return render_template("meal_planner.html", meal_data=meal_data)
+
 
 # =================== DATABASE ===================
 
