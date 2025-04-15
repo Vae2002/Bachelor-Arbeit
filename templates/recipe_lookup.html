@@ -33,16 +33,46 @@
                             Show Nutrients
                         </button>
 
-                        <!-- Collapsible Nutrients -->                        
+                        <!-- Top-level Nutrients Collapse -->
                         <div class="collapse" id="nutrients{{ loop.index }}">
                             <div class="card card-body">
-                                <ol style="text-align: left;">
-                                    {% for nutrient, value in recipe.macro %}
-                                        {% if value is not none %}
-                                            <li><strong>{{ nutrient }}:</strong> {{ value }}</li>
-                                        {% endif %}
-                                    {% endfor %}
-                                </ol>
+                                
+                                <!-- Macro Nutrients Button -->
+                                <button class="btn btn-outline-warning mb-2" type="button" data-bs-toggle="collapse" data-bs-target="#macro{{ loop.index }}" aria-expanded="false" aria-controls="macro{{ loop.index }}">
+                                    Macro Nutrients
+                                </button>
+
+                                <!-- Macro Nutrients Content -->
+                                <div class="collapse" id="macro{{ loop.index }}">
+                                    <div class="card card-body">
+                                        <ol style="text-align: left;">
+                                            {% for nutrient, value in recipe.macro %}
+                                                {% if value is not none %}
+                                                    <li><strong>{{ nutrient }}:</strong> {{ value }}</li>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </ol>
+                                    </div>
+                                </div>
+
+                                <!-- Micro Nutrients Button -->
+                                <button class="btn btn-outline-warning mb-2" type="button" data-bs-toggle="collapse" data-bs-target="#micro{{ loop.index }}" aria-expanded="false" aria-controls="micro{{ loop.index }}">
+                                    Micro Nutrients
+                                </button>
+
+                                <!-- Micro Nutrients Content -->
+                                <div class="collapse" id="micro{{ loop.index }}">
+                                    <div class="card card-body">
+                                        <ol style="text-align: left;">
+                                            {% for nutrient, value in recipe.micro %}
+                                                {% if value is not none %}
+                                                    <li><strong>{{ nutrient }}:</strong> {{ value }}</li>
+                                                {% endif %}
+                                            {% endfor %}
+                                        </ol>
+                                    </div>
+                                </div>
+
                             </div>
                         </div>
 
