@@ -54,6 +54,7 @@ class MealPlan(db.Model):
     day = db.Column(db.String(20), nullable=False)          # e.g., "monday"
     meal_type = db.Column(db.String(20), nullable=False)    # e.g., "lunch", "dinner"
     recipe_name = db.Column(db.String(255), nullable=False) # e.g., "Grilled Chicken"
+    recipe_calories = db.Column(db.String(255), nullable=False)
 
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -573,6 +574,7 @@ def recipe_lookup():
 @login_required
 def save_to_meal_planner():
     recipe_name = request.form['recipe_name']
+    recipe_calories = request.form['recipe_calories']
     day = request.form['day']
     meal = request.form['meal']
 
@@ -581,7 +583,7 @@ def save_to_meal_planner():
     if existing:
         existing.recipe_name = recipe_name
     else:
-        new_entry = MealPlan(user_id=current_user.id, day=day, meal_type=meal, recipe_name=recipe_name)
+        new_entry = MealPlan(user_id=current_user.id, day=day, meal_type=meal, recipe_name=recipe_name, recipe_calories=recipe_calories)
         db.session.add(new_entry)
 
     db.session.commit()
@@ -597,7 +599,11 @@ def meal_planner():
     
     # Map them to day_meal -> recipe_name
     meal_data = {
-        f"{meal.day}_{meal.meal_type}": meal.recipe_name for meal in saved_meals
+        f"{meal.day}_{meal.meal_type}": {
+            'name': meal.recipe_name,
+            'calories': meal.recipe_calories
+        }
+        for meal in saved_meals
     }
 
     return render_template("meal_planner.html", meal_data=meal_data)

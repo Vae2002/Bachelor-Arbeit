@@ -80,15 +80,37 @@
             <div class="row g-4">
                 {% for day in days %}
                 {% if loop.index == 5 %}</div><div class="row g-4 mt-4">{% endif %}
-                <div class="col-md-3">
-                    <label class="form-label"><strong>{{ day.capitalize() }}</strong></label>
-                    {% for meal in meals %}
-                        <div class="form-control mb-2 bg-light">
-                            <strong>{{ meal.capitalize() }}:</strong><br>
-                            {{ meal_data.get(day ~ '_' ~ meal, '—') }}
+                    <div class="col-md-3">
+                        <label class="form-label"><strong>{{ day.capitalize() }}</strong></label>
+                    
+                        {% set daily_total = namespace(value=0) %}
+                    
+                        {% for meal in meals %}
+                        <div class="row mb-2">
+                            <div class="col-7">
+                                <div class="form-control bg-light">
+                                    <strong>{{ meal.capitalize() }}:</strong><br>
+                                    {{ meal_data.get(day ~ '_' ~ meal, {}).get('name', '—') }}
+                                </div>
+                            </div>
+                            <div class="col-5">
+                                <div class="form-control bg-light text-end">
+                                    <small>Calories:</small><br>
+                                    {% set cal = meal_data.get(day ~ '_' ~ meal, {}).get('calories') %}
+                                    {{ cal if cal else '—' }} kcal
+                                    {% if cal %}
+                                        {% set daily_total.value = daily_total.value + (cal | int) %}
+                                    {% endif %}
+                                </div>
+                            </div>
                         </div>
-                    {% endfor %}
-                </div>
+                        {% endfor %}
+                    
+                        <div class="form-control text-center bg-warning-subtle mt-3">
+                            <strong>Total Calories:</strong> {{ daily_total.value }} kcal
+                        </div>
+                    </div>
+                                                        
                 {% endfor %}
 
                 <!-- Buttons -->
