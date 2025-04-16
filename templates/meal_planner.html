@@ -58,18 +58,20 @@
                     <label class="form-label"><strong>{{ day.capitalize() }}</strong></label>
                     {% set daily_total = namespace(value=0) %}
                     {% for meal in meals %}
+                    {% set meal_key = day ~ '_' ~ meal %}
+                    {% set meal_info = meal_data.get(meal_key, {}) %}
                     <div class="row mb-2">
                         <div class="col-7">
-                            <div class="form-control bg-light">
+                            <div class="form-control bg-light small-text">
                                 <strong>{{ meal.capitalize() }}:</strong><br>
-                                {{ meal_data.get(day ~ '_' ~ meal, {}).get('name', '—') }}
+                                {{ meal_info.get('name', '—') }}
                             </div>
                         </div>
                         <div class="col-5">
-                            <div class="form-control bg-light text-end">
-                                <small>Calories:</small><br>
-                                {% set cal = meal_data.get(day ~ '_' ~ meal, {}).get('calories') %}
-                                {{ cal if cal else '—' }} kcal
+                            <div class="form-control bg-light text-end small-text">
+                                <small><strong>Calories:</strong></small><br>
+                                {% set cal = meal_info.get('calories') %}
+                                {{ cal if cal else '—' }} kcal<br>
                                 {% if cal %}
                                     {% set daily_total.value = daily_total.value + (cal | int) %}
                                 {% endif %}
@@ -181,14 +183,18 @@
                 const entry = mealData[key] || {};
                 const name = entry.name || '—';
                 const calories = entry.calories || 0;
+                const macro = entry.macro || '';
+                const micro = entry.micro || '';
                 total += parseInt(calories) || 0;
 
                 content += `
                     <div class="card my-3 shadow-sm">
                         <div class="card-body">
                             <h5 class="card-title">${meal.charAt(0).toUpperCase() + meal.slice(1)}</h5>
-                            <p class="card-text">${name}</p>
+                            <p class="card-text"><strong>${name}</strong></p>
                             <p class="text-muted">Calories: ${calories} kcal</p>
+                            <p class="text-muted small">Macro: ${macro}</p>
+                            <p class="text-muted small">Micro: ${micro}</p>
                         </div>
                     </div>`;
             });
