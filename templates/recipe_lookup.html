@@ -123,6 +123,8 @@
                                 <form action="{{ url_for('save_to_meal_planner') }}" method="POST">
                                     <input type="hidden" name="recipe_name" value="{{ recipe.name }}">
                                     <input type="hidden" name="recipe_calories" value="{{ recipe.calories }}">
+                                    <input type="hidden" name="recipe_macro" value="{{ recipe.macro }}">
+                                    <input type="hidden" name="recipe_micro" value="{{ recipe.micro }}">
 
                                     <div class="mb-2">
                                         <label for="day{{ loop.index }}" class="form-label">Day</label>
