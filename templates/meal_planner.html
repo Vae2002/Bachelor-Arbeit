@@ -55,7 +55,11 @@
                 {% for day in days %}
                 {% if loop.index == 5 %}</div><div class="row g-4 mt-4">{% endif %}
                 <div class="col-md-3">
-                    <label class="form-label"><strong>{{ day.capitalize() }}</strong></label>
+                    <label class="form-label">
+                        <strong>
+                            <a href="#" class="text-decoration-none day-link" data-day="{{ day }}">{{ day.capitalize() }}</a>
+                        </strong>
+                    </label>                    
                     {% set daily_total = namespace(value=0) %}
                     {% for meal in meals %}
                     {% set meal_key = day ~ '_' ~ meal %}
@@ -203,5 +207,27 @@
             dailyContent.innerHTML = content;
         });
     });
+
+    document.querySelectorAll('.day-link').forEach(link => {
+        link.addEventListener('click', function (e) {
+            e.preventDefault();
+
+            const selectedDay = this.getAttribute('data-day');
+
+            // Switch tabs
+            document.getElementById('daily-tab').click();
+
+            // Wait for tab switch to finish (in case of animations etc)
+            setTimeout(() => {
+                const daySelect = document.getElementById('day-select');
+                if (daySelect) {
+                    daySelect.value = selectedDay;
+                    daySelect.dispatchEvent(new Event('change'));
+                }
+            }, 100); // Delay just to ensure DOM update
+        });
+    });
+
+
 </script>
 {% endblock %}
