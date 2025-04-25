@@ -158,7 +158,7 @@
         const dailyBtn = document.getElementById('daily-tab');
         const weeklyView = document.getElementById('weekly-view');
         const dailyView = document.getElementById('daily-view');
-        const mealData = {{ meal_data | tojson }};
+        const mealData = {{ meal_data | tojson | safe }};
 
         weeklyBtn.addEventListener('click', () => {
             weeklyBtn.classList.add('active');
