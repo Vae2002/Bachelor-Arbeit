@@ -611,7 +611,12 @@ def save_to_meal_planner():
         flash(f"{meal.capitalize()} on {day.capitalize()} has been added to your meal planner.", "success")
 
     db.session.commit()
-    return redirect(request.referrer or url_for('meal_planner'))
+
+    # Return JSON response
+    return jsonify({
+        'success': True,
+        'message': f'{meal.capitalize()} on {day.capitalize()} has been saved!'
+    })
 
 
 # =================== MEAL PLANNER ===================

@@ -120,12 +120,11 @@
                         <!-- Save Dish Form -->
                         <div class="collapse" id="save_dish{{ loop.index }}">
                             <div class="card card-body">
-                                <form action="{{ url_for('save_to_meal_planner') }}" method="POST">
+                                <form id="save_form_{{ loop.index }}" action="{{ url_for('save_to_meal_planner') }}" method="POST">
                                     <input type="hidden" name="recipe_name" value="{{ recipe.name }}">
                                     <input type="hidden" name="recipe_calories" value="{{ recipe.calories }}">
                                     <input type="hidden" name="recipe_macro" value="{{ recipe.macro }}">
                                     <input type="hidden" name="recipe_micro" value="{{ recipe.micro }}">
-
                                     <div class="mb-2">
                                         <label for="day{{ loop.index }}" class="form-label">Day</label>
                                         <select name="day" id="day{{ loop.index }}" class="form-select">
@@ -134,7 +133,6 @@
                                             {% endfor %}
                                         </select>
                                     </div>
-
                                     <div class="mb-3">
                                         <label for="meal{{ loop.index }}" class="form-label">Meal Type</label>
                                         <select name="meal" id="meal{{ loop.index }}" class="form-select">
@@ -143,7 +141,6 @@
                                             {% endfor %}
                                         </select>
                                     </div>
-
                                     <button type="submit" class="btn btn-success w-100">Save</button>
                                 </form>
                             </div>
@@ -181,4 +178,36 @@
     {% else %}
         <p>No recipes found for the entered ingredients or recipe name.</p>
     {% endif %}
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const forms = document.querySelectorAll('form[id^="save_form_"]');
+            forms.forEach(function(form) {
+                form.addEventListener('submit', function(event) {
+                    event.preventDefault();  // Prevent default form submission
+                    
+                    const formData = new FormData(form);
+        
+                    fetch(form.action, {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())  // Assuming the response is JSON
+                    .then(data => {
+                        if (data.success) {
+                            // Show success message or update UI without page reload
+                            alert(data.message);  // Example: Use flash messages
+                        } else {
+                            // Handle error
+                            alert('There was an error saving the recipe.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });
+                });
+            });
+        });
+    </script>
+        
 {% endblock %}
