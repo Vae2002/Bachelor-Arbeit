@@ -76,6 +76,7 @@ def register():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
+        verify_password = request.form['verify_password']
         email = request.form['email']
 
         # Check if username OR email is already taken
@@ -84,7 +85,12 @@ def register():
         ).first()
         if user_exists:
             flash('Username or email already taken!', 'danger')
-            return redirect(url_for('register'))
+            return render_template('register.html', username=username, email=email)
+
+        # Check if password and verify_password match
+        if password != verify_password:
+            flash('Passwords do not match! Please enter the same passwords', 'danger')
+            return render_template('register.html', username=username, email=email)
 
         hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
         new_user = User(username=username, password=hashed_password, email=email)
