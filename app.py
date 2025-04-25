@@ -593,12 +593,25 @@ def save_to_meal_planner():
     existing = MealPlan.query.filter_by(user_id=current_user.id, day=day, meal_type=meal).first()
     if existing:
         existing.recipe_name = recipe_name
+        existing.recipe_calories = recipe_calories
+        existing.recipe_macro = recipe_macro
+        existing.recipe_micro = recipe_micro
+        flash(f"{meal.capitalize()} on {day.capitalize()} has been updated in your meal planner.", "success")
     else:
-        new_entry = MealPlan(user_id=current_user.id, day=day, meal_type=meal, recipe_name=recipe_name, recipe_calories=recipe_calories, recipe_macro=recipe_macro, recipe_micro=recipe_micro)
+        new_entry = MealPlan(
+            user_id=current_user.id,
+            day=day,
+            meal_type=meal,
+            recipe_name=recipe_name,
+            recipe_calories=recipe_calories,
+            recipe_macro=recipe_macro,
+            recipe_micro=recipe_micro
+        )
         db.session.add(new_entry)
+        flash(f"{meal.capitalize()} on {day.capitalize()} has been added to your meal planner.", "success")
 
     db.session.commit()
-    return redirect(url_for('meal_planner'))
+    return redirect(request.referrer or url_for('meal_planner'))
 
 
 # =================== MEAL PLANNER ===================
