@@ -15,7 +15,8 @@
     </form>
 
     <div class="d-flex justify-content-between mb-3">
-        <button class="btn btn-outline-primary" onclick="toggleSelectAll()" id="select-all-btn">Select/Deselect All</button>
+        <button class="btn btn-outline-primary" onclick="toggleSelectAll()" id="select-all-btn">Select All</button>
+        <button class="btn btn-outline-primary" onclick="toggleDeselectAll()" id="deselect-all-btn">Deselect All</button>
         <button class="btn btn-outline-danger" onclick="clearAllPurchased()">Clear All Purchased</button>
     </div>
 
@@ -111,11 +112,31 @@
         let checkboxes = document.querySelectorAll('.purchased-checkbox');
         // console logs 
         console.log(checkboxes)
-        let allChecked = Array.from(checkboxes).every(checkbox => checkbox.checked);
+        // let allChecked = Array.from(checkboxes).every(checkbox => checkbox.checked);
         // add console logs to understand the variable changes
         checkboxes.forEach(checkbox => {
-            checkbox.checked = !allChecked;
-            togglePurchased(checkbox.closest('li').id.split('-')[1]);  // Get the item ID from the list element
+            // checkbox.checked = !allChecked;
+            if (!checkbox.checked) {
+                checkbox.checked = true;
+                togglePurchased(checkbox.closest('li').id.split('-')[1]);
+            }
+            // togglePurchased(checkbox.closest('li').id.split('-')[1]);  
+        });
+    }
+
+    function toggleDeselectAll() {
+        let checkboxes = document.querySelectorAll('.purchased-checkbox');
+        // console logs 
+        console.log(checkboxes)
+        // let allChecked = Array.from(checkboxes).every(checkbox => checkbox.checked);
+        // add console logs to understand the variable changes
+        checkboxes.forEach(checkbox => {
+            // checkbox.checked = !allChecked;
+            if (checkbox.checked) {
+                checkbox.checked = false;
+                togglePurchased(checkbox.closest('li').id.split('-')[1]);
+            }
+            // togglePurchased(checkbox.closest('li').id.split('-')[1]);  
         });
     }
 </script>
