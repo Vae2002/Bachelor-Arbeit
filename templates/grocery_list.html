@@ -109,7 +109,10 @@
 
     function toggleSelectAll() {
         let checkboxes = document.querySelectorAll('.purchased-checkbox');
+        // console logs 
+        console.log(checkboxes)
         let allChecked = Array.from(checkboxes).every(checkbox => checkbox.checked);
+        // add console logs to understand the variable changes
         checkboxes.forEach(checkbox => {
             checkbox.checked = !allChecked;
             togglePurchased(checkbox.closest('li').id.split('-')[1]);  // Get the item ID from the list element

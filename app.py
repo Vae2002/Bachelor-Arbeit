@@ -42,18 +42,23 @@ class User(UserMixin, db.Model):
     fat_grams = db.Column(db.Float, nullable=True)
     carbs_grams = db.Column(db.Float, nullable=True)
 
-    cuisines = db.Column(db.Text, nullable=True, default="[]")  # Store as JSON string
+    cuisines = db.Column(db.Text, nullable=True, default="[]")  
     allergies = db.Column(db.Text, nullable=True, default="[]") 
     dietary_restrictions = db.Column(db.Text, nullable=True, default="[]")
+
+class Member(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    name = db.Column(db.String(150), nullable=False)
 
 
 class MealPlan(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
 
-    day = db.Column(db.String(20), nullable=False)          # e.g., "monday"
-    meal_type = db.Column(db.String(20), nullable=False)    # e.g., "lunch", "dinner"
-    recipe_name = db.Column(db.String(255), nullable=False) # e.g., "Grilled Chicken"
+    day = db.Column(db.String(20), nullable=False)        
+    meal_type = db.Column(db.String(20), nullable=False)    
+    recipe_name = db.Column(db.String(255), nullable=False) 
     recipe_calories = db.Column(db.String(255), nullable=False)
     recipe_macro = db.Column(db.String(255), nullable=False)
     recipe_micro = db.Column(db.String(255), nullable=False)
@@ -104,13 +109,13 @@ def register():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form['username'].lower()  # Convert to lowercase
+        username = request.form['username'].lower()  
         password = request.form['password']
 
         user = User.query.filter_by(username=username).first()
         if user and check_password_hash(user.password, password):
             login_user(user)
-            flash('Login successful!', 'success')  # Flash success message
+            flash('Login successful!', 'success')  
             return redirect(url_for('profile'))
         else:
             flash('Invalid credentials.', 'danger')
@@ -189,10 +194,10 @@ def home():
 @login_required
 def diet_calculator():
     # Initialize variables to store diet info
-    bmr = tdee = protein_grams = fat_grams = carbs_grams = None  # Default values
+    bmr = tdee = protein_grams = fat_grams = carbs_grams = None 
 
     if request.method == 'POST':
-        print(f"Form data: {request.form}")  # Print all the form data
+        print(f"Form data: {request.form}") 
 
         weight = request.form.get('weight')
         if weight is None:
@@ -238,12 +243,6 @@ def diet_calculator():
         fat_grams = (tdee * fat_percentage) / 9
         carbs_grams = (tdee * carb_percentage) / 4
 
-        # # Debug print for calculations
-        # print(f"Daily Calories: {tdee}")
-        # print(f"Protein (grams): {protein_grams}")
-        # print(f"Fat (grams): {fat_grams}")
-        # print(f"Carbs (grams): {carbs_grams}")
-
         # Save the calculated values to the database (before 'Save to Profile')
         current_user.daily_calories = tdee
         current_user.protein_grams = protein_grams
@@ -259,23 +258,21 @@ def diet_calculator():
 
 
         try:
-            print("Attempting to commit changes to the database...")  # Debugging line
+            print("Attempting to commit changes to the database...")  
 
-            # Ensure changes are being tracked
             if db.session.dirty:
                 print("Diet info calculated and saved to profile!")
                 print("There are changes to commit.")
-                db.session.flush()  # Ensure changes are written to the DB
+                db.session.flush()  
 
             db.session.commit()
             flash("Diet info calculated and saved to profile!", "success")
         except Exception as e:
-            print(f"Error during commit: {e}")  # This should show the error if it occurs
+            print(f"Error during commit: {e}") 
             flash(f"Error saving data: {e}", "danger")
-            db.session.rollback()  # Rollback any changes if there's an error
-            print(f"Error: {e}")  # Additional print for debugging
+            db.session.rollback()  
+            print(f"Error: {e}")  
 
-        # Now, handle the save to profile (the button click)
         if request.form.get("save_to_profile"):
             print(f"Save to profile button clicked!")
 
@@ -411,7 +408,7 @@ def load_recipes():
         image_filename = row['Image_Name'].strip() + '.jpg'
         
         # Build relative image path for static folder
-        image_path = os.path.join('static', 'food_images', image_filename)  # Path relative to the 'static' folder
+        image_path = os.path.join('static', 'food_images', image_filename) 
         
         # Check if the image exists inside the 'static/food_images' folder
         full_image_path = os.path.join(BASE_DIR, image_path)
@@ -421,7 +418,7 @@ def load_recipes():
         if os.path.exists(full_image_path):
             image = image_filename
         else:
-            image = 'default.jpg'  # Fallback if the image is not found
+            image = 'default.jpg' 
 
         def split_instructions(text):
             if not isinstance(text, str):
@@ -462,7 +459,7 @@ def load_recipes():
 
         def parse_nutrients(text):
             tuples = []
-            pattern = r"\('([^']+)',\s*([^)]+)\)"  # Match tuples like ('Carbs', 123.4)
+            pattern = r"\('([^']+)',\s*([^)]+)\)"
 
             for match in re.findall(pattern, text):
                 key = match[0].strip()
@@ -472,7 +469,7 @@ def load_recipes():
                     if not math.isnan(val):
                         tuples.append((key, val))
                 except ValueError:
-                    continue  # skip if not a number
+                    continue  
 
             return tuples
         
