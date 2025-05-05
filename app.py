@@ -601,15 +601,26 @@ def meal_planner():
     meal_data = {}
     for meal in meals:
         weekday = meal.date.strftime('%A').lower()
-        key = f"{weekday}_{meal.meal_type}"
-        meal_data[key] = {
+        key_by_day = f"{weekday}_{meal.meal_type}"
+        key_by_date = f"{meal.date}_{meal.meal_type}"
+
+        meal_data[key_by_day] = {
             'name': meal.recipe_name,
             'calories': meal.recipe_calories,
             'macro': meal.recipe_macro,
             'micro': meal.recipe_micro
         }
 
-    return render_template("meal_planner.html", meal_data=meal_data, selected_week=week_param)
+        meal_data[key_by_date] = meal_data[key_by_day]  # same info, different key
+
+
+    return render_template(
+        "meal_planner.html",
+        meal_data=meal_data,
+        selected_week=week_param,
+        start_of_week=start_of_week,
+        timedelta=timedelta 
+    )
 
 
 # =================== DATABASE ===================

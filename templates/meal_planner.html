@@ -38,18 +38,18 @@
             {% endfor %}
         </div>
 
-        <!-- Week Selector -->
-        <div class="row mb-3">
-            <div class="col-md-4 mx-auto">
-                <label for="selected_week" class="form-label"><strong>Select Week</strong></label>
-                <input type="week" id="selected_week" class="form-select" value="{{ selected_week }}">
-            </div>
-        </div>
-
         <!-- Weekly View -->
         <div id="weekly-view">
             {% set days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] %}
             {% set meals = ['breakfast', 'lunch', 'snack', 'dinner', 'extra'] %}
+
+            <!-- Week Selector -->
+            <div class="row mb-3">
+                <div class="col-md-4 mx-auto">
+                    <label for="selected_week" class="form-label"><h3>Select Week</h3></label>
+                    <input type="week" id="selected_week" class="form-select" value="{{ selected_week }}">
+                </div>
+            </div>
 
             <div class="row g-4">
                 {% for day in days %}
@@ -57,7 +57,8 @@
                 <div class="col-md-3">
                     <label class="form-label">
                         <strong>
-                            <a href="#" class="text-decoration-none day-link" data-day="{{ day }}">{{ day.capitalize() }}</a>
+                            {% set current_date = (start_of_week + timedelta(days=loop.index0)).isoformat() %}
+                            <a href="#" class="text-decoration-none day-link" data-day="{{ current_date }}">{{ day.capitalize() }}</a>
                         </strong>
                     </label>                    
                     {% set daily_total = namespace(value=0) %}
@@ -101,12 +102,8 @@
         <!-- Daily View -->
         <div id="daily-view" style="display: none;">
             <div class="text-center my-4">
-                <h3>Select a Day</h3>
-                <select id="day-select" class="form-select w-auto mx-auto">
-                    {% for day in days %}
-                    <option value="{{ day }}">{{ day.capitalize() }}</option>
-                    {% endfor %}
-                </select>
+                <h3>Select a Date</h3>
+                <input type="date" id="date-picker" class="form-control w-auto mx-auto">
             </div>
 
             <div id="daily-content" class="mt-4">
@@ -175,55 +172,65 @@
 
         const daySelect = document.getElementById('day-select');
         const dailyContent = document.getElementById('daily-content');
+        const datePicker = document.getElementById('date-picker');
 
-        daySelect?.addEventListener('change', function () {
-            const day = this.value;
+        datePicker?.addEventListener('change', function () {
+            const selectedDate = this.value;  // Format: "YYYY-MM-DD"
+            const mealData = {{ meal_data | tojson | safe }};
+            const dateMeals = Object.entries(mealData)
+                .filter(([key, _]) => key.startsWith(selectedDate));
+
             let total = 0;
-            let content = `<h4 class="text-center text-capitalize">${day}</h4>`;
+            let content = ``;
 
-            ['breakfast', 'lunch', 'snack', 'dinner', 'extra'].forEach(meal => {
-                const key = `${day}_${meal}`;
-                const entry = mealData[key] || {};
-                const name = entry.name || '—';
-                const calories = entry.calories || 0;
-                const macro = entry.macro || '';
-                const micro = entry.micro || '';
-                total += parseInt(calories) || 0;
+            if (dateMeals.length === 0) {
+                content += `<p class="text-center text-muted">No meals found for this date.</p>`;
+            } else {
+                ['breakfast', 'lunch', 'snack', 'dinner', 'extra'].forEach(meal => {
+                    const key = `${selectedDate}_${meal}`;
+                    const entry = mealData[key] || {};
+                    const name = entry.name || '—';
+                    const calories = entry.calories || 0;
+                    const macro = entry.macro || '';
+                    const micro = entry.micro || '';
+                    total += parseInt(calories) || 0;
 
-                content += `
-                    <div class="card my-3 shadow-sm">
-                        <div class="card-body">
-                            <h5 class="card-title">${meal.charAt(0).toUpperCase() + meal.slice(1)}</h5>
-                            <p class="card-text"><strong>${name}</strong></p>
-                            <p class="text-muted">Calories: ${calories} kcal</p>
-                            <p class="text-muted small">Macro: ${macro}</p>
-                            <p class="text-muted small">Micro: ${micro}</p>
-                        </div>
-                    </div>`;
-            });
+                    content += `
+                        <div class="card my-3 shadow-sm">
+                            <div class="card-body">
+                                <h5 class="card-title">${meal.charAt(0).toUpperCase() + meal.slice(1)}</h5>
+                                <p class="card-text"><strong>${name}</strong></p>
+                                <p class="text-muted">Calories: ${calories} kcal</p>
+                                <p class="text-muted small">Macro: ${macro}</p>
+                                <p class="text-muted small">Micro: ${micro}</p>
+                            </div>
+                        </div>`;
+                });
+            }
 
             content += `<div class="alert alert-info text-center"><strong>Total:</strong> ${total} kcal</div>`;
             dailyContent.innerHTML = content;
         });
+
     });
 
     document.querySelectorAll('.day-link').forEach(link => {
         link.addEventListener('click', function (e) {
             e.preventDefault();
 
-            const selectedDay = this.getAttribute('data-day');
+            const selectedDate = this.getAttribute('data-day'); // e.g., '2025-05-05'
 
-            // Switch tabs
+            // Switch to daily view
             document.getElementById('daily-tab').click();
 
-            // Wait for tab switch to finish (in case of animations etc)
+            // Set date picker value
             setTimeout(() => {
-                const daySelect = document.getElementById('day-select');
-                if (daySelect) {
-                    daySelect.value = selectedDay;
-                    daySelect.dispatchEvent(new Event('change'));
+                const picker = document.getElementById('date-picker');
+                if (picker) {
+                    picker.value = selectedDate;
+                    picker.dispatchEvent(new Event('change'));
                 }
-            }, 100); // Delay just to ensure DOM update
+            }, 100);
         });
     });
 
