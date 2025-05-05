@@ -4,7 +4,7 @@ from flask_login import LoginManager, login_user, login_required, logout_user, c
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from datetime import datetime, timedelta
-from models import db, User, Member, MealPlan
+from models import db, User, Member, GroceryItem, MealPlan, Pantry
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -263,14 +263,6 @@ def diet_calculator():
     return render_template('diet_calculator.html')
 
 # =================== GROCERY LIST ===================
-# GroceryItem Model
-class GroceryItem(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    quantity = db.Column(db.Integer, nullable=False)
-    purchased = db.Column(db.Boolean, default=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-
 # Grocery List Routes
 @app.route('/grocery')
 @login_required
@@ -611,7 +603,7 @@ def meal_planner():
             'micro': meal.recipe_micro
         }
 
-        meal_data[key_by_date] = meal_data[key_by_day]  # same info, different key
+        meal_data[key_by_date] = meal_data[key_by_day]  
 
 
     return render_template(
@@ -622,6 +614,42 @@ def meal_planner():
         timedelta=timedelta 
     )
 
+# =================== PANTRY ORGANIZATION ===================
+@app.route('/pantry', methods=['GET', 'POST'])
+@login_required
+def pantry():
+    if request.method == 'POST':
+        item_id = request.form.get('item_id')
+        name = request.form['item']
+        quantity = int(request.form['quantity'])
+        expiration_str = request.form['expiration']
+        expiration_date = datetime.strptime(expiration_str, '%Y-%m-%d').date()
+
+        if item_id:
+            pantry_item = Pantry.query.get(int(item_id))
+            if pantry_item and pantry_item.user_id == current_user.id:
+                pantry_item.name = name
+                pantry_item.quantity = quantity
+                pantry_item.expired = expiration_date
+                pantry_item.selected = 'selected' in request.form
+                db.session.commit()
+                flash('Pantry item updated successfully.', 'success')
+        else:
+            new_item = Pantry(
+                name=name,
+                quantity=quantity,
+                expired=expiration_date,
+                selected='selected' in request.form,
+                user_id=current_user.id
+            )
+            db.session.add(new_item)
+            db.session.commit()
+            flash('Pantry item added!', 'success')
+
+        return redirect(url_for('pantry'))
+
+    items = Pantry.query.filter_by(user_id=current_user.id).all()
+    return render_template('pantry.html', items=items)
 
 # =================== DATABASE ===================
 
