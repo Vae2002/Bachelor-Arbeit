@@ -42,7 +42,7 @@
         <div class="row mb-3">
             <div class="col-md-4 mx-auto">
                 <label for="selected_week" class="form-label"><strong>Select Week</strong></label>
-                <select name="selected_week" id="selected_week" class="form-select"></select>
+                <input type="week" id="selected_week" class="form-select" value="{{ selected_week }}">
             </div>
         </div>
 
@@ -88,7 +88,6 @@
                     </div>
                 </div>
                 {% endfor %}
-
                 <!-- Weekly View Buttons -->
                 <div class="col-md-3 d-flex flex-column align-items-end gap-2">
                     <br><br><br><br><br><br><br><br>
@@ -228,6 +227,12 @@
         });
     });
 
+    document.getElementById("selected_week").addEventListener("change", function () {
+        const week = this.value;
+        if (week) {
+            window.location.href = `/meal_planner?week=${week}`;
+        }
+    });
 
 </script>
 {% endblock %}

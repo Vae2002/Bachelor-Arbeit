@@ -125,14 +125,12 @@
                                     <input type="hidden" name="recipe_calories" value="{{ recipe.calories }}">
                                     <input type="hidden" name="recipe_macro" value="{{ recipe.macro }}">
                                     <input type="hidden" name="recipe_micro" value="{{ recipe.micro }}">
+                                
                                     <div class="mb-2">
-                                        <label for="day{{ loop.index }}" class="form-label">Day</label>
-                                        <select name="day" id="day{{ loop.index }}" class="form-select">
-                                            {% for day in ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'] %}
-                                                <option value="{{ day }}">{{ day.capitalize() }}</option>
-                                            {% endfor %}
-                                        </select>
+                                        <label for="date">Date:</label>
+                                        <input type="date" id="date" name="date" required>
                                     </div>
+                                
                                     <div class="mb-3">
                                         <label for="meal{{ loop.index }}" class="form-label">Meal Type</label>
                                         <select name="meal" id="meal{{ loop.index }}" class="form-select">
@@ -141,8 +139,9 @@
                                             {% endfor %}
                                         </select>
                                     </div>
+                                
                                     <button type="submit" class="btn btn-success w-100">Save</button>
-                                </form>
+                                </form>                                                                
                             </div>
                         </div>                                
                     </div>                    
