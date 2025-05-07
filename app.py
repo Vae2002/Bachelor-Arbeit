@@ -524,6 +524,58 @@ def recipe_lookup():
         pagination=pagination
     ) 
 
+from flask import jsonify
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+
+import re
+
+@app.route('/chatbot-recommend', methods=['POST'])
+@login_required
+def chatbot_recommend():
+    data = request.get_json()
+    prompt = data.get("prompt", "").lower()
+
+    if not prompt:
+        return jsonify({"recipes": []})
+
+    # Parse calorie constraint (e.g., "under 1000 calories")
+    calorie_limit = None
+    match = re.search(r"under (\d+)", prompt)  # Look for "under <number>" in the prompt
+    if match:
+        calorie_limit = int(match.group(1))
+
+    # Vector-based similarity using recipe titles + ingredients
+    documents = [str(r.get("name", "")) + " " + " ".join(r.get("ingredients", [])) for r in recipes]
+    vectorizer = TfidfVectorizer().fit(documents + [prompt])
+    doc_vectors = vectorizer.transform(documents)
+    prompt_vector = vectorizer.transform([prompt])
+
+    # Compute similarity
+    similarities = cosine_similarity(prompt_vector, doc_vectors).flatten()
+    top_indices = similarities.argsort()[-9:][::-1]  # Get top 9 results
+
+    # Filter top recipes based on calorie limit
+    top_recipes = [recipes[i] for i in top_indices]
+
+    if calorie_limit:
+        # Filter recipes based on calorie constraint
+        top_recipes = [r for r in top_recipes if r['calories'] <= calorie_limit]
+
+    # If no recipes meet the calorie constraint, return empty list
+    if not top_recipes:
+        return jsonify({"recipes": []})
+
+    return jsonify({
+        "recipes": [
+            {
+                "name": r["name"],
+                "calories": r["calories"],
+                "image": r["image"]
+            } for r in top_recipes
+        ]
+    })
+
 @app.route('/save_to_meal_planner', methods=['POST'])
 @login_required
 def save_to_meal_planner():
