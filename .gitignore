@@ -1,4 +1,7 @@
 
 *.db
+<<<<<<< HEAD
 *.db
+=======
+>>>>>>> 699a6633503a6e5313c20071db157a567921595a
 instance/grocery.db
