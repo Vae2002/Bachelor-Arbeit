@@ -31,6 +31,14 @@ class Member(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     name = db.Column(db.String(150), nullable=False)
 
+# GroceryItem Model
+class GroceryItem(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False)
+    purchased = db.Column(db.Boolean, default=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+
 
 class MealPlan(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -47,3 +55,12 @@ class MealPlan(db.Model):
 
     # Optional: backref to User
     user = db.relationship('User', backref='meal_plans')
+
+# Pantry Model
+class Pantry(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False)
+    expired = db.Column(db.Date, nullable=False)
+    selected = db.Column(db.Boolean, default=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
