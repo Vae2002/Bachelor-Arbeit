@@ -1,4 +1,5 @@
 import os
+import json
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -101,7 +102,6 @@ def profile():
         selected_member = members[0]
 
     # Parse JSON fields if present
-    import json
     if selected_member:
         selected_member.cuisines = json.loads(selected_member.cuisines or "[]")
         selected_member.allergies = json.loads(selected_member.allergies or "[]")

@@ -52,15 +52,18 @@
                     <button class="btn btn-success dropdown-toggle w-100" type="button" id="memberDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                         Select Member
                     </button>
+
                     <ul class="dropdown-menu w-100" aria-labelledby="memberDropdown">
-                        <li><a class="dropdown-item" href="#">Link 1</a></li>
-                        <li><a class="dropdown-item" href="#">Link 2</a></li>
-                        <li><a class="dropdown-item" href="#">Link 3</a></li>
+                        {% for member in members %}
+                        <li>
+                            <a class="dropdown-item member-option" href="#" data-member-id="{{ member.id }}">{{ member.name }}</a>
+                        </li>
+                        {% endfor %}
                         <li><hr class="dropdown-divider"></li>
                         <li>
-                        <button class="dropdown-item text-success" type="button" data-bs-toggle="modal" data-bs-target="#addMemberModal">
-                            + Add Member
-                        </button>
+                            <button class="dropdown-item text-success" type="button" data-bs-toggle="modal" data-bs-target="#addMemberModal">
+                                + Add Member
+                            </button>
                         </li>
                     </ul>
                 </div>
@@ -78,45 +81,46 @@
             <div class="modal fade" id="addMemberModal" tabindex="-1" aria-labelledby="addMemberModalLabel" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-scrollable">
                     <div class="modal-content">
-                    <form method="POST" action="{{ url_for('add_member') }}">
-                        {{ form.hidden_tag() }}
-                        <div class="modal-header">
-                        <h5 class="modal-title" id="addMemberModalLabel">Add New Member</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
-                        <div class="mb-3">
-                            {{ form.name.label }} {{ form.name(class="form-control") }}
-                        </div>
-                        <div class="mb-3">
-                            {{ form.daily_calories.label }} {{ form.daily_calories(class="form-control") }}
-                        </div>
-                        <div class="mb-3">
-                            {{ form.protein_grams.label }} {{ form.protein_grams(class="form-control") }}
-                        </div>
-                        <div class="mb-3">
-                            {{ form.fat_grams.label }} {{ form.fat_grams(class="form-control") }}
-                        </div>
-                        <div class="mb-3">
-                            {{ form.carbs_grams.label }} {{ form.carbs_grams(class="form-control") }}
-                        </div>
-                        <div class="mb-3">
-                            {{ form.cuisines.label }}
-                            {{ form.cuisines(class="form-control", multiple=True) }}
-                        </div>
-                        <div class="mb-3">
-                            {{ form.allergies.label }}
-                            {{ form.allergies(class="form-control", multiple=True) }}
-                        </div>
-                        <div class="mb-3">
-                            {{ form.dietary_restrictions.label }}
-                            {{ form.dietary_restrictions(class="form-control", multiple=True) }}
-                        </div>
-                        </div>
-                        <div class="modal-footer">
-                        <button type="submit" class="btn btn-success">Add Member</button>
-                        </div>
-                    </form>
+                        <form method="POST" action="{{ url_for('add_member') }}">
+                            {{ form.hidden_tag() }}
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="addMemberModalLabel">Add New Member</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+
+                            <div class="modal-body" style="max-height: 60vh; overflow-y: auto;">
+                                <div class="mb-3">
+                                    {{ form.name.label }} {{ form.name(class="form-control") }}
+                                </div>
+                                <div class="mb-3">
+                                    {{ form.daily_calories.label }} {{ form.daily_calories(class="form-control") }}
+                                </div>
+                                <div class="mb-3">
+                                    {{ form.protein_grams.label }} {{ form.protein_grams(class="form-control") }}
+                                </div>
+                                <div class="mb-3">
+                                    {{ form.fat_grams.label }} {{ form.fat_grams(class="form-control") }}
+                                </div>
+                                <div class="mb-3">
+                                    {{ form.carbs_grams.label }} {{ form.carbs_grams(class="form-control") }}
+                                </div>
+                                <div class="mb-3">
+                                    {{ form.cuisines.label }}
+                                    {{ form.cuisines(class="form-control", multiple=True) }}
+                                </div>
+                                <div class="mb-3">
+                                    {{ form.allergies.label }}
+                                    {{ form.allergies(class="form-control", multiple=True) }}
+                                </div>
+                                <div class="mb-3">
+                                    {{ form.dietary_restrictions.label }}
+                                    {{ form.dietary_restrictions(class="form-control", multiple=True) }}
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="submit" class="btn btn-success">Add Member</button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>
