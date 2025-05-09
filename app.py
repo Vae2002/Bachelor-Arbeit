@@ -5,6 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from datetime import datetime, timedelta
 from models import db, User, Member, GroceryItem, MealPlan, Pantry
+from forms import MemberForm
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -31,7 +32,7 @@ login_manager.init_app(app)
 # Load user function for Flask-Login
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    return db.session.get(User, int(user_id))
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -90,35 +91,75 @@ def logout():
 @app.route('/profile', methods=['GET', 'POST'])
 @login_required
 def profile():
-    if current_user.cuisines is None:
-        current_user.cuisines = "[]"
-    if current_user.allergies is None:
-        current_user.allergies = "[]"
-    if current_user.dietary_restrictions is None:
-        current_user.dietary_restrictions = "[]"
+    members = Member.query.filter_by(user_id=current_user.id).all()
+    selected_member_id = request.args.get('member_id')
 
-    if request.method == "POST":
-        # Handle Profile Update
-        current_user.username = request.form.get("username")
-        current_user.email = request.form.get("email")
-        current_user.bio = request.form.get("bio")
+    selected_member = None
+    if selected_member_id:
+        selected_member = Member.query.filter_by(id=selected_member_id, user_id=current_user.id).first()
+    elif members:
+        selected_member = members[0]
 
-        if "profile_pic" in request.files:
-            profile_pic = request.files["profile_pic"]
-            if profile_pic.filename != "":
-                pic_filename = f"{current_user.id}_{secure_filename(profile_pic.filename)}"
-                profile_pic.save(os.path.join(app.config['UPLOAD_FOLDER'], pic_filename))
-                current_user.profile_pic = pic_filename
+    # Parse JSON fields if present
+    import json
+    if selected_member:
+        selected_member.cuisines = json.loads(selected_member.cuisines or "[]")
+        selected_member.allergies = json.loads(selected_member.allergies or "[]")
+        selected_member.dietary_restrictions = json.loads(selected_member.dietary_restrictions or "[]")
 
-        current_user.cuisines = str(request.form.getlist("cuisines[]"))
-        current_user.allergies = str(request.form.getlist("allergies[]"))
-        current_user.dietary_restrictions = str(request.form.getlist("dietary_restrictions[]"))
-
+    # Handle updates
+    if request.method == "POST" and selected_member:
+        selected_member.name = request.form.get("member_name")
+        selected_member.daily_calories = request.form.get("daily_calories")
+        selected_member.protein_grams = request.form.get("protein_grams")
+        selected_member.fat_grams = request.form.get("fat_grams")
+        selected_member.carbs_grams = request.form.get("carbs_grams")
+        selected_member.cuisines = str(request.form.getlist("cuisines[]"))
+        selected_member.allergies = str(request.form.getlist("allergies[]"))
+        selected_member.dietary_restrictions = str(request.form.getlist("dietary_restrictions[]"))
         db.session.commit()
-        flash("Profile updated successfully!", "success")
-        return redirect(url_for("profile"))
+        flash("Member updated!", "success")
+        return redirect(url_for('profile', member_id=selected_member.id))
 
-    return render_template("profile.html", user=current_user)
+    form = MemberForm()
+
+    return render_template(
+        "profile.html",
+        user=current_user,
+        members=members,
+        selected_member=selected_member,
+        form=form 
+    )
+
+@app.route('/add_member', methods=['GET', 'POST'])
+@login_required
+def add_member():
+    form = MemberForm()
+    if request.method == 'POST':
+        print("POST received")
+        print("Form valid:", form.validate_on_submit())
+        print("Errors:", form.errors)
+
+    if form.validate_on_submit():
+        member = Member(
+            user_id=current_user.id,
+            name=form.name.data,
+            daily_calories=form.daily_calories.data,
+            protein_grams=form.protein_grams.data,
+            fat_grams=form.fat_grams.data,
+            carbs_grams=form.carbs_grams.data,
+            cuisines=json.dumps(form.cuisines.data),
+            allergies=json.dumps(form.allergies.data),
+            dietary_restrictions=json.dumps(form.dietary_restrictions.data)
+        )
+        db.session.add(member)
+        db.session.commit()
+
+        flash("Member added!")
+        print("Members now:", Member.query.filter_by(user_id=current_user.id).all())
+        return redirect(url_for('profile'))
+
+    return render_template('add_member.html', form=form)
 
 @app.route('/change_password', methods=['POST'])
 @login_required

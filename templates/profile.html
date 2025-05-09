@@ -3,6 +3,20 @@
 {% block title %}Profile{% endblock %}
 {% block content %}
 
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div class="mb-3">
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+
+
 <div class="container mt-5">
     <h2 class="text-center">User Profile</h2>
 
@@ -15,87 +29,40 @@
                 <img src="{{ url_for('static', filename='uploads/' + user.profile_pic) }}" alt="Profile Picture" class="rounded-circle" width="100">
             </div>
 
+            <div class="mb-3">
+                <label class="form-label">Username:</label>
+                <input type="text" name="username" class="form-control" value="{{ user.username }}" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Email:</label>
+                <input type="email" name="email" class="form-control" value="{{ user.email }}">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Bio:</label>
+                <textarea name="bio" class="form-control">{{ user.bio }}</textarea>
+            </div>
+
             <!-- Profile Form -->
-            <form action="{{ url_for('profile') }}" method="POST" enctype="multipart/form-data">
-                <div class="mb-3">
-                    <label class="form-label">Username:</label>
-                    <input type="text" name="username" class="form-control" value="{{ user.username }}" required>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Email:</label>
-                    <input type="email" name="email" class="form-control" value="{{ user.email }}">
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Bio:</label>
-                    <textarea name="bio" class="form-control">{{ user.bio }}</textarea>
-                </div>
-
+            <form method="POST" enctype="multipart/form-data">
 
                 <!-- Select or Add Member -->
-                <div class="mb-3">
-
-                    <div class="dropdown">
-                        <button class="dropbtn" type="button" id="testDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                            Select Member
+                <div class="dropdown mb-3">
+                    <label class="form-label">Member:</label>
+                    <button class="btn btn-success dropdown-toggle w-100" type="button" id="memberDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        Select Member
+                    </button>
+                    <ul class="dropdown-menu w-100" aria-labelledby="memberDropdown">
+                        <li><a class="dropdown-item" href="#">Link 1</a></li>
+                        <li><a class="dropdown-item" href="#">Link 2</a></li>
+                        <li><a class="dropdown-item" href="#">Link 3</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                        <button class="dropdown-item text-success" type="button" data-bs-toggle="modal" data-bs-target="#addMemberModal">
+                            + Add Member
                         </button>
-                        
-                        <div class="dropdown-content" aria-labelledby="testDropdown">
-                            <a href="#">Link 1</a>
-                            <a href="#">Link 2</a>
-                            <a href="#">Link 3</a>
-
-                            <hr class="dropdown-divider">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Diet Information -->
-                <h3 class="mt-4">Diet Information</h3>
-                <p><strong>Daily Calories:</strong> {{ current_user.daily_calories }}</p>
-                <p><strong>Protein:</strong> {{ current_user.protein_grams }} g</p>
-                <p><strong>Fat:</strong> {{ current_user.fat_grams }} g</p>
-                <p><strong>Carbs:</strong> {{ current_user.carbs_grams }} g</p>
-                                               
-
-                <!-- Preferences -->
-                <div class="mb-3">
-                    <label class="form-label">Cuisines:</label>
-                    <div class="d-flex flex-column">
-                        {% for cuisine in ["Italian", "Chinese"] %}
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="cuisines[]" value="{{ cuisine }}"
-                                {% if user.cuisines and cuisine in user.cuisines %}checked{% endif %}>
-                            <label class="form-check-label">{{ cuisine }}</label>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Allergies:</label>
-                    <div class="d-flex flex-column">
-                        {% for allergy in ["Peanuts", "Dairy"] %}
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="allergies[]" value="{{ allergy }}"
-                                {% if user.allergies and allergy in user.allergies %}checked{% endif %}>
-                            <label class="form-check-label">{{ allergy }}</label>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Dietary Restrictions:</label>
-                    <div class="d-flex flex-wrap">
-                        {% for restriction in ["Low Salt", "Low Sugar", "Low Fat", "Gluten Free"] %}
-                        <div class="form-check me-3">
-                            <input class="form-check-input" type="checkbox" name="dietary_restrictions[]" value="{{ restriction }}"
-                                {% if user.dietary_restrictions and restriction in user.dietary_restrictions %}checked{% endif %}>
-                            <label class="form-check-label">{{ restriction }}</label>
-                        </div>
-                        {% endfor %}
-                    </div>
+                        </li>
+                    </ul>
                 </div>
 
                 <!-- Profile Picture Upload -->
@@ -106,6 +73,53 @@
 
                 <button type="submit" class="btn btn-primary w-100">Save Profile Changes</button>
             </form>   
+
+            <!-- Add Member Modal -->
+            <div class="modal fade" id="addMemberModal" tabindex="-1" aria-labelledby="addMemberModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-scrollable">
+                    <div class="modal-content">
+                    <form method="POST" action="{{ url_for('add_member') }}">
+                        {{ form.hidden_tag() }}
+                        <div class="modal-header">
+                        <h5 class="modal-title" id="addMemberModalLabel">Add New Member</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                        <div class="mb-3">
+                            {{ form.name.label }} {{ form.name(class="form-control") }}
+                        </div>
+                        <div class="mb-3">
+                            {{ form.daily_calories.label }} {{ form.daily_calories(class="form-control") }}
+                        </div>
+                        <div class="mb-3">
+                            {{ form.protein_grams.label }} {{ form.protein_grams(class="form-control") }}
+                        </div>
+                        <div class="mb-3">
+                            {{ form.fat_grams.label }} {{ form.fat_grams(class="form-control") }}
+                        </div>
+                        <div class="mb-3">
+                            {{ form.carbs_grams.label }} {{ form.carbs_grams(class="form-control") }}
+                        </div>
+                        <div class="mb-3">
+                            {{ form.cuisines.label }}
+                            {{ form.cuisines(class="form-control", multiple=True) }}
+                        </div>
+                        <div class="mb-3">
+                            {{ form.allergies.label }}
+                            {{ form.allergies(class="form-control", multiple=True) }}
+                        </div>
+                        <div class="mb-3">
+                            {{ form.dietary_restrictions.label }}
+                            {{ form.dietary_restrictions(class="form-control", multiple=True) }}
+                        </div>
+                        </div>
+                        <div class="modal-footer">
+                        <button type="submit" class="btn btn-success">Add Member</button>
+                        </div>
+                    </form>
+                    </div>
+                </div>
+            </div>
 
             <!-- Change Password Section -->
             <div class="mt-4">
@@ -135,5 +149,23 @@
         </div>
     </div>
 </div>
+
+<script>
+    function changeMember(select) {
+        const memberId = select.value;
+        window.location.href = `{{ url_for('profile') }}?member_id=${memberId}`;
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const dropdownItems = document.querySelectorAll('.dropdown-menu .dropdown-item');
+        const dropdownButton = document.getElementById('memberDropdown');
+
+        dropdownItems.forEach(item => {
+        item.addEventListener('click', function () {
+            dropdownButton.textContent = this.textContent;
+        });
+        });
+    });
+</script>
 
 {% endblock %}
