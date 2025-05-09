@@ -3,20 +3,6 @@
 {% block title %}Profile{% endblock %}
 {% block content %}
 
-{% with messages = get_flashed_messages(with_categories=true) %}
-  {% if messages %}
-    <div class="mb-3">
-      {% for category, message in messages %}
-        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-          {{ message }}
-          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-      {% endfor %}
-    </div>
-  {% endif %}
-{% endwith %}
-
-
 <div class="container mt-5">
     <h2 class="text-center">User Profile</h2>
 
@@ -56,7 +42,7 @@
                     <ul class="dropdown-menu w-100" aria-labelledby="memberDropdown">
                         {% for member in members %}
                         <li>
-                            <a class="dropdown-item member-option" href="#" data-member-id="{{ member.id }}">{{ member.name }}</a>
+                            <a class="dropdown-item member-option" href="{{ url_for('profile', member_id=member.id) }}">{{ member.name }}</a>
                         </li>
                         {% endfor %}
                         <li><hr class="dropdown-divider"></li>
@@ -67,6 +53,21 @@
                         </li>
                     </ul>
                 </div>
+
+                {% if selected_member %}
+                    <div id="memberInfoSection" class="mb-3">
+                        <h5 class="text-center">Member Info: {{ selected_member.name }}</h5>
+                        <p><strong>Calories:</strong> {{ selected_member.daily_calories or 'N/A' }}</p>
+                        <p><strong>Protein:</strong> {{ selected_member.protein_grams or 'N/A' }}g</p>
+                        <p><strong>Fat:</strong> {{ selected_member.fat_grams or 'N/A' }}g</p>
+                        <p><strong>Carbs:</strong> {{ selected_member.carbs_grams or 'N/A' }}g</p>
+                        <p><strong>Cuisines:</strong> {{ selected_member.cuisines | join(', ') }}</p>
+                        <p><strong>Allergies:</strong> {{ selected_member.allergies | join(', ') }}</p>
+                        <p><strong>Restrictions:</strong> {{ selected_member.dietary_restrictions | join(', ') }}</p>
+                    </div>
+                {% endif %}
+
+
 
                 <!-- Profile Picture Upload -->
                 <div class="mb-3">
@@ -165,8 +166,13 @@
         const dropdownButton = document.getElementById('memberDropdown');
 
         dropdownItems.forEach(item => {
-        item.addEventListener('click', function () {
+        item.addEventListener('click', function (e) {
+            if (this.classList.contains('text-success')) {
+            dropdownButton.textContent = "Select Member";
+            }
+            else{
             dropdownButton.textContent = this.textContent;
+            }
         });
         });
     });
