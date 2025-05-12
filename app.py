@@ -10,7 +10,7 @@ from forms import MemberForm
 
 # Initialize Flask app
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///grocery.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///mealplan.db'
 app.config['SECRET_KEY'] = 'your_secret_key_here'
 
 db.init_app(app)
@@ -195,6 +195,19 @@ def diet_calculator():
     bmr = tdee = protein_grams = fat_grams = carbs_grams = None 
 
     if request.method == 'POST':
+        member_id = request.form.get('member_id')
+        if member_id:
+            member = Member.query.filter_by(id=member_id, user_id=current_user.id).first()
+            if member:
+                member.daily_calories = tdee
+                member.protein_grams = protein_grams
+                member.fat_grams = fat_grams
+                member.carbs_grams = carbs_grams
+                db.session.commit()
+                flash(f"Diet info saved to {member.name}'s profile!", "success")
+            else:
+                flash("Member not found or unauthorized.", "danger")
+                
         print(f"Form data: {request.form}") 
 
         weight = request.form.get('weight')
@@ -293,12 +306,13 @@ def diet_calculator():
 
         # Render the result on the same page
         return render_template(
-            'diet_calculator.html', 
-            bmr=bmr, 
-            tdee=tdee, 
-            protein_grams=protein_grams, 
-            fat_grams=fat_grams, 
-            carbs_grams=carbs_grams
+            'diet_calculator.html',
+            bmr=bmr,
+            tdee=tdee,
+            protein_grams=protein_grams,
+            fat_grams=fat_grams,
+            carbs_grams=carbs_grams,
+            user=current_user  # <-- Add this
         )
 
     return render_template('diet_calculator.html')
@@ -743,21 +757,6 @@ def pantry():
 
     items = Pantry.query.filter_by(user_id=current_user.id).all()
     return render_template('pantry.html', items=items)
-
-# =================== DATABASE ===================
-
-# # Recreate the database (Run this ONCE after deleting `grocery.db`)
-# def reset_database():
-#     if os.path.exists("grocery.db"):
-#         os.remove("grocery.db")  # Delete old database file
-#     db.create_all()
-#     print("Database reset and recreated successfully!")
-
-# # Initialize Database
-# if __name__ == '__main__':
-#     with app.app_context():
-#         reset_database()  # Call this function ONCE to reset
-#     app.run(debug=True)
 
 # ------------------ INIT DB ------------------ #
 if __name__ == '__main__':

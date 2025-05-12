@@ -9,20 +9,29 @@
 
         <!-- If the results are available, show them -->
         {% if bmr %}
-        <div class="mt-4">
-            <h4>Your Results:</h4>
-            <p><strong>BMR:</strong> {{ bmr }} kcal/day</p>
-            <p><strong>TDEE:</strong> {{ tdee }} kcal/day</p>
-            <p><strong>Protein:</strong> {{ protein_grams }} g/day</p>
-            <p><strong>Fat:</strong> {{ fat_grams }} g/day</p>
-            <p><strong>Carbs:</strong> {{ carbs_grams }} g/day</p>
+            <div class="mt-4">
+                <h4>Your Results:</h4>
+                <p><strong>BMR:</strong> {{ bmr }} kcal/day</p>
+                <p><strong>TDEE:</strong> {{ tdee }} kcal/day</p>
+                <p><strong>Protein:</strong> {{ protein_grams }} g/day</p>
+                <p><strong>Fat:</strong> {{ fat_grams }} g/day</p>
+                <p><strong>Carbs:</strong> {{ carbs_grams }} g/day</p>
+            </div>
 
             <!-- Save to Profile Button -->
             <form method="POST" action="{{ url_for('diet_calculator') }}">
                 <input type="hidden" name="save_to_profile" value="true">
+                <div class="mb-3">
+                    <label for="member_id" class="form-label">Apply to Member (optional):</label>
+                    <select name="member_id" class="form-control">
+                        <option value="">-- Select Member --</option>
+                        {% for member in user.members %}
+                        <option value="{{ member.id }}">{{ member.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
                 <button type="submit" class="btn btn-success w-100 mt-4">Save to Profile</button>                
             </form>
-        </div>
         {% endif %}
 
         <form id="diet-form" method="POST">

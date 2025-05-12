@@ -93,18 +93,41 @@
                                 <div class="mb-3">
                                     {{ form.name.label }} {{ form.name(class="form-control") }}
                                 </div>
+                                <!-- Collapsible Trigger -->
                                 <div class="mb-3">
-                                    {{ form.daily_calories.label }} {{ form.daily_calories(class="form-control") }}
+                                    <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#nutritionFields" aria-expanded="false" aria-controls="nutritionFields">
+                                        Show Daily Intake
+                                    </button>
                                 </div>
-                                <div class="mb-3">
-                                    {{ form.protein_grams.label }} {{ form.protein_grams(class="form-control") }}
+
+                                <!-- Collapsible Nutrition Fields -->
+                                <div class="collapse" id="nutritionFields">
+                                    <div class="card card-body">
+                                        <div class="mb-3">
+                                            <label class="form-label">Not sure what your daily intakes are?</label><br>
+                                            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#dietCalculatorModal">
+                                                Open Diet Calculator
+                                            </button>
+                                        </div>
+                                        <div class="mb-3">
+                                            {{ form.daily_calories.label }} 
+                                            {{ form.daily_calories(class="form-control", id="dailyCalories") }}
+                                        </div>
+                                        <div class="mb-3">
+                                            {{ form.protein_grams.label }} 
+                                            {{ form.protein_grams(class="form-control", id="proteinGrams") }}
+                                        </div>
+                                        <div class="mb-3">
+                                            {{ form.fat_grams.label }} 
+                                            {{ form.fat_grams(class="form-control", id="fatGrams") }}
+                                        </div>
+                                        <div class="mb-3">
+                                            {{ form.carbs_grams.label }} 
+                                            {{ form.carbs_grams(class="form-control", id="carbsGrams") }}
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="mb-3">
-                                    {{ form.fat_grams.label }} {{ form.fat_grams(class="form-control") }}
-                                </div>
-                                <div class="mb-3">
-                                    {{ form.carbs_grams.label }} {{ form.carbs_grams(class="form-control") }}
-                                </div>
+
                                 <div class="mb-3">
                                     {{ form.cuisines.label }}
                                     {{ form.cuisines(class="form-control", multiple=True) }}
@@ -122,6 +145,41 @@
                                 <button type="submit" class="btn btn-success">Add Member</button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Diet Calculator Modal -->
+            <div class="modal fade" id="dietCalculatorModal" tabindex="-1" aria-labelledby="dietCalculatorModalLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="dietCalculatorModalLabel">Diet Calculator</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <!-- Mock calculator fields -->
+                            <div class="mb-3">
+                                <label for="calcCalories" class="form-label">Calories</label>
+                                <input type="number" class="form-control" id="calcCalories">
+                            </div>
+                            <div class="mb-3">
+                                <label for="calcProtein" class="form-label">Protein (g)</label>
+                                <input type="number" class="form-control" id="calcProtein">
+                            </div>
+                            <div class="mb-3">
+                                <label for="calcFat" class="form-label">Fat (g)</label>
+                                <input type="number" class="form-control" id="calcFat">
+                            </div>
+                            <div class="mb-3">
+                                <label for="calcCarbs" class="form-label">Carbohydrates (g)</label>
+                                <input type="number" class="form-control" id="calcCarbs">
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-primary" onclick="applyDietValues()">Apply to Member Form</button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -176,6 +234,31 @@
         });
         });
     });
+
+    function applyDietValues() {
+        // Get values from calculator modal
+        const calories = document.getElementById('calcCalories').value;
+        const protein = document.getElementById('calcProtein').value;
+        const fat = document.getElementById('calcFat').value;
+        const carbs = document.getElementById('calcCarbs').value;
+
+        // Set values in addMemberModal form
+        document.getElementById('dailyCalories').value = calories;
+        document.getElementById('proteinGrams').value = protein;
+        document.getElementById('fatGrams').value = fat;
+        document.getElementById('carbsGrams').value = carbs;
+
+        // Close calculator modal
+        const dietModal = bootstrap.Modal.getInstance(document.getElementById('dietCalculatorModal'));
+        dietModal.hide();
+
+        // After slight delay, reopen Add Member modal
+        setTimeout(() => {
+            const addMemberModalEl = document.getElementById('addMemberModal');
+            const addMemberModal = new bootstrap.Modal(addMemberModalEl);
+            addMemberModal.show();
+        }, 300); // Delay ensures smooth transition
+    }
 </script>
 
 {% endblock %}
