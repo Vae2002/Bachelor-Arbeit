@@ -582,54 +582,78 @@ def recipe_lookup():
 from flask import jsonify
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-
 import re
+import time
+import requests
+import json
 
 @app.route('/chatbot-recommend', methods=['POST'])
 @login_required
 def chatbot_recommend():
+    start_time = time.time()
     data = request.get_json()
     prompt = data.get("prompt", "").lower()
 
     if not prompt:
         return jsonify({"recipes": []})
 
-    # Parse calorie constraint (e.g., "under 1000 calories")
+    # Extract calorie constraint
     calorie_limit = None
-    match = re.search(r"under (\d+)", prompt)  # Look for "under <number>" in the prompt
+    match = re.search(r"under (\d+)", prompt)
     if match:
         calorie_limit = int(match.group(1))
 
-    # Vector-based similarity using recipe titles + ingredients
+    # Build TF-IDF vectors
     documents = [str(r.get("name", "")) + " " + " ".join(r.get("ingredients", [])) for r in recipes]
     vectorizer = TfidfVectorizer().fit(documents + [prompt])
     doc_vectors = vectorizer.transform(documents)
     prompt_vector = vectorizer.transform([prompt])
 
-    # Compute similarity
+    # Find most relevant recipes
     similarities = cosine_similarity(prompt_vector, doc_vectors).flatten()
-    top_indices = similarities.argsort()[-9:][::-1]  # Get top 9 results
-
-    # Filter top recipes based on calorie limit
+    top_indices = similarities.argsort()[-10:][::-1]
     top_recipes = [recipes[i] for i in top_indices]
 
+    # Apply calorie filter
     if calorie_limit:
-        # Filter recipes based on calorie constraint
         top_recipes = [r for r in top_recipes if r['calories'] <= calorie_limit]
 
-    # If no recipes meet the calorie constraint, return empty list
     if not top_recipes:
         return jsonify({"recipes": []})
 
-    return jsonify({
-        "recipes": [
-            {
-                "name": r["name"],
-                "calories": r["calories"],
-                "image": r["image"]
-            } for r in top_recipes
-        ]
-    })
+    # Format selected recipes into context
+    context = "\n".join([
+        f"- {r['name']} (Calories: {r['calories']}) - Ingredients: {', '.join(r['ingredients'])}"
+        for r in top_recipes
+    ])
+
+    full_prompt = f"""
+I have the following recipes:
+{context}
+
+Based on the user request: "{prompt}", which recipes would you recommend and why?
+Please return up to 3 suggestions.
+"""
+
+    # Call local LLaMA 3 using Ollama
+    llama_start = time.time()
+    response = requests.post(
+        "http://localhost:11434/api/generate",
+        json={
+            "model": "llama3",
+            "prompt": full_prompt,
+            "stream": False
+        }
+    )
+    llama_end = time.time()
+
+    result = response.json()
+    print(f"⏱️ Total time: {time.time() - start_time:.2f}s | LLaMA time: {llama_end - llama_start:.2f}s")
+    print("📨 Full prompt sent to LLaMA:\n", full_prompt)
+
+    return jsonify({"response": result.get("response", ""), "recipes": top_recipes})
+
+
 
 @app.route('/save_to_meal_planner', methods=['POST'])
 @login_required
