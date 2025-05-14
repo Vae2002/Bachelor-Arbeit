@@ -28,41 +28,96 @@
     </div>
 
     <script>
-    document.getElementById("chatbotSubmit").addEventListener("click", function() {
-        const prompt = document.getElementById("chatbotPrompt").value;
-
-        fetch("/chatbot-recommend", {
-            method: "POST",
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt: prompt })
-        })
-        .then(res => res.json())
-        .then(data => {
+        document.getElementById("chatbotSubmit").addEventListener("click", function () {
+            const prompt = document.getElementById("chatbotPrompt").value;
             const resultsDiv = document.getElementById("chatbotResults");
-            resultsDiv.innerHTML = '';
 
-            if (data.recipes.length === 0) {
-                resultsDiv.innerHTML = '<p>No recipes found.</p>';
-                return;
-            }
+            // Clear previous results and show loading animation
+            resultsDiv.innerHTML = '<p id="loadingText">Loading.</p>';
 
-            data.recipes.forEach(recipe => {
-                const card = document.createElement("div");
-                card.className = "col-md-4";
-                card.innerHTML = `
-                    <div class="card mb-3">
-                        <img src="/static/food_images/${recipe.image}" class="card-img-top" alt="${recipe.name}">
-                        <div class="card-body">
-                            <h5 class="card-title">${recipe.name}</h5>
-                            <p class="card-text">Calories: ${recipe.calories}</p>
+            // Animate the loading text: "Loading." → "Loading.." → "Loading..."
+            let dots = 1;
+            const loadingText = document.getElementById("loadingText");
+            const loadingInterval = setInterval(() => {
+                dots = (dots % 3) + 1;
+                loadingText.textContent = "Loading" + ".".repeat(dots);
+            }, 500);
+
+            fetch("/chatbot-recommend", {
+                method: "POST",
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ prompt: prompt })
+            })
+            .then(res => res.json())
+            // .then(data => {
+            //     clearInterval(loadingInterval); // Stop loading animation
+            //     resultsDiv.innerHTML = '';
+
+            //     if (data.recipes.length === 0) {
+            //         resultsDiv.innerHTML = '<p>No recipes found.</p>';
+            //         return;
+            //     }
+
+            //     data.recipes.forEach(recipe => {
+            //         const card = document.createElement("div");
+            //         card.className = "col-md-4";
+            //         card.innerHTML = `
+            //             <div class="card mb-3">
+            //                 <img src="/static/food_images/${recipe.image}" class="card-img-top" alt="${recipe.name}">
+            //                 <div class="card-body">
+            //                     <h5 class="card-title">
+            //                         <a href="/recipe_lookup/${encodeURIComponent(recipe.name)}?source=chatbot&prompt=${encodeURIComponent(prompt)}">
+            //                             ${recipe.name}
+            //                         </a>
+            //                     </h5>
+            //                     <p class="card-text">Calories: ${recipe.calories}</p>
+            //                 </div>
+            //             </div>
+            //         `;
+            //         resultsDiv.appendChild(card);
+            //     });
+            // })
+            .then(data => {
+                clearInterval(loadingInterval);
+                resultsDiv.innerHTML = '';
+
+                // 🔔 Play notification sound
+                const audio = document.getElementById("chatbotNotification");
+                if (audio) audio.play().catch(e => console.log("Autoplay prevented:", e));
+
+                if (data.recipes.length === 0) {
+                    resultsDiv.innerHTML = '<p>No recipes found.</p>';
+                    return;
+                }
+
+                data.recipes.forEach(recipe => {
+                    const card = document.createElement("div");
+                    card.className = "col-md-4";
+                    card.innerHTML = `
+                        <div class="card mb-3">
+                            <img src="/static/food_images/${recipe.image}" class="card-img-top" alt="${recipe.name}">
+                            <div class="card-body">
+                                <h5 class="card-title">
+                                    <a href="/recipe_lookup/${encodeURIComponent(recipe.name)}?source=chatbot&prompt=${encodeURIComponent(prompt)}">
+                                        ${recipe.name}
+                                    </a>
+                                </h5>
+                                <p class="card-text">Calories: ${recipe.calories}</p>
+                            </div>
                         </div>
-                    </div>
-                `;
-                resultsDiv.appendChild(card);
+                    `;
+                    resultsDiv.appendChild(card);
+                });
+            })
+
+            .catch(error => {
+                clearInterval(loadingInterval);
+                resultsDiv.innerHTML = '<p>Error fetching recipes. Please try again.</p>';
+                console.error('Error:', error);
             });
         });
-    });
     </script>
+
 
     <form method="POST">
         <div class="form-group">
@@ -85,7 +140,12 @@
                     <!-- Image Tag -->
                     <img src="{{ url_for('static', filename='food_images/' ~ recipe.image) }}" class="card-img-top" alt="{{ recipe.name }}">
                     <div class="card-body">
-                        <h4 class="card-title">{{ recipe.name }}</h4>
+                        <h4 class="card-title">
+                            <a href="{{ url_for('recipe_detail', recipe_name=recipe.name|urlencode) }}">
+                                {{ recipe.name }}
+                            </a>
+                        </h4>
+
                         <h5 class="card-text">Calories: <strong>{{ recipe.calories }}</strong>kcal</h5>
 
                         <!-- Nutrient Toggle Button -->
@@ -268,5 +328,7 @@
             });
         });
     </script>
+
+    <audio id="chatbotNotification" src="/static/sounds/notification.mp3" preload="auto"></audio>
         
 {% endblock %}

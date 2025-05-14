@@ -7,6 +7,7 @@ from werkzeug.utils import secure_filename
 from datetime import datetime, timedelta
 from models import db, User, Member, GroceryItem, MealPlan, Pantry
 from forms import MemberForm
+import urllib.parse
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -579,49 +580,206 @@ def recipe_lookup():
         pagination=pagination
     ) 
 
-from flask import jsonify
+# Add to your imports if not already present
+from flask import jsonify, request
+from flask_login import login_required
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+import re, time, requests
 
-import re
+# --- Ingredient matching dictionaries ---
+
+# Specific ingredients — prioritized exact matches
+SPECIFIC_INGREDIENTS = {
+    "duck eggs": ["duck eggs", "salted duck eggs", "fermented duck eggs"],
+    "oyster sauce": ["oyster sauce", "premium oyster sauce", "vegetarian oyster sauce"],
+    "soy milk": ["soy milk", "unsweetened soy milk", "sweetened soy milk", "organic soy milk"],
+    "quail eggs": ["quail eggs", "boiled quail eggs"],
+    "coconut milk": ["coconut milk", "organic coconut milk", "light coconut milk"],
+    "almond milk": ["almond milk", "unsweetened almond milk", "vanilla almond milk"],
+    "evaporated milk": ["evaporated milk"],
+    "condensed milk": ["condensed milk", "sweetened condensed milk"],
+    "fish sauce": ["fish sauce", "premium fish sauce", "thai fish sauce"],
+    "hoisin sauce": ["hoisin sauce"],
+    "rice vinegar": ["rice vinegar", "seasoned rice vinegar"],
+    "apple cider vinegar": ["apple cider vinegar"],
+}
+
+# Broad categories with common variants
+MAIN_INGREDIENT_PATTERNS = {
+    "chicken": [
+        "chicken breast", "chicken thigh", "grilled chicken", "roast chicken",
+        "whole chicken", "baked chicken", "fried chicken", "boiled chicken",
+        "chicken leg", "chicken drumstick", "shredded chicken", "chicken wing"
+    ],
+    "beef": [
+        "ground beef", "beef steak", "roast beef", "beef strips",
+        "braised beef", "beef ribs", "beef brisket", "beef patty"
+    ],
+    "fish": [
+        "grilled fish", "salmon", "cod", "tuna", "mackerel", "tilapia",
+        "baked fish", "pan-fried fish", "steamed fish", "fish fillet"
+    ],
+    "shrimp": [
+        "grilled shrimp", "shrimp skewer", "boiled shrimp", "fried shrimp",
+        "shrimp cocktail", "shrimp tempura", "peeled shrimp"
+    ],
+    "tofu": [
+        "tofu", "firm tofu", "silken tofu", "fried tofu", "grilled tofu", "tofu cubes"
+    ],
+    "lentils": [
+        "lentils", "red lentils", "green lentils", "brown lentils", "yellow lentils", "split lentils"
+    ],
+    "pork": [
+        "pork chop", "pork loin", "ground pork", "roast pork", "bbq pork", 
+        "pork belly", "braised pork", "fried pork", "pork ribs"
+    ]
+}
+
+# Exclusions to prevent false matches
+EXCLUDED_INGREDIENT_PATTERNS = {
+    "chicken": [
+        "chicken broth", "chicken stock", "egg", "chicken egg", "chicken bouillon",
+        "cream of chicken soup", "dried chicken powder"
+    ],
+    "beef": [
+        "beef broth", "beef stock", "beef bouillon", "cream of beef soup"
+    ],
+    "fish": [
+        "fish sauce", "fish paste", "anchovy paste"
+    ],
+    "shrimp": [
+        "shrimp paste", "dried shrimp powder", "shrimp seasoning"
+    ],
+    "pork": [
+        "pork broth", "bacon bits", "pork flavoring", "pork stock"
+    ],
+    # These are exact-match ingredients, so no exclusion needed
+    "duck eggs": [],
+    "oyster sauce": [],
+    "soy milk": [],
+    "quail eggs": [],
+    "coconut milk": [],
+    "almond milk": [],
+    "evaporated milk": [],
+    "condensed milk": [],
+    "fish sauce": [],
+    "hoisin sauce": [],
+    "rice vinegar": [],
+    "apple cider vinegar": [],
+}
+
+# --- Helper Functions ---
+
+def extract_main_ingredient(prompt):
+    prompt = prompt.lower()
+
+    # First, prevent false matches by checking exclusions
+    for general in EXCLUDED_INGREDIENT_PATTERNS:
+        for exclusion in EXCLUDED_INGREDIENT_PATTERNS[general]:
+            if re.search(rf"\b{re.escape(exclusion)}\b", prompt):
+                return None  # Detected an excluded phrase
+
+    # Next, look for specific ingredients (like duck eggs, soy milk)
+    for specific in SPECIFIC_INGREDIENTS:
+        if re.search(rf"\b{re.escape(specific)}\b", prompt):
+            return specific
+
+    # Finally, fallback to general ingredient matches
+    for general in MAIN_INGREDIENT_PATTERNS:
+        if re.search(rf"\b{general}\b", prompt):
+            return general
+
+    return None
+
+def extract_calorie_limit(prompt):
+    match = re.search(r"under (\d+)", prompt)
+    return int(match.group(1)) if match else None
+
+def is_main_ingredient_match(ingredient, ingredients_list):
+    """Check if recipe ingredients include allowed ingredient and exclude false matches."""
+    text = " ".join(ingredients_list).lower()
+
+    if ingredient in SPECIFIC_INGREDIENTS:
+        allowed = any(p in text for p in SPECIFIC_INGREDIENTS[ingredient])
+        return allowed
+
+    # General category match
+    allowed = any(p in text for p in MAIN_INGREDIENT_PATTERNS.get(ingredient, [ingredient]))
+    excluded = any(p in text for p in EXCLUDED_INGREDIENT_PATTERNS.get(ingredient, []))
+    return allowed and not excluded
+
+# --- Route ---
 
 @app.route('/chatbot-recommend', methods=['POST'])
 @login_required
 def chatbot_recommend():
+    start_time = time.time()
+
     data = request.get_json()
     prompt = data.get("prompt", "").lower()
 
     if not prompt:
         return jsonify({"recipes": []})
 
-    # Parse calorie constraint (e.g., "under 1000 calories")
-    calorie_limit = None
-    match = re.search(r"under (\d+)", prompt)  # Look for "under <number>" in the prompt
-    if match:
-        calorie_limit = int(match.group(1))
+    calorie_limit = extract_calorie_limit(prompt)
+    main_ingredient = extract_main_ingredient(prompt)
 
-    # Vector-based similarity using recipe titles + ingredients
-    documents = [str(r.get("name", "")) + " " + " ".join(r.get("ingredients", [])) for r in recipes]
+    documents = [
+        str(r.get("name", "")) + " " + " ".join(r.get("ingredients", []))
+        for r in recipes
+    ]
     vectorizer = TfidfVectorizer().fit(documents + [prompt])
     doc_vectors = vectorizer.transform(documents)
     prompt_vector = vectorizer.transform([prompt])
 
-    # Compute similarity
     similarities = cosine_similarity(prompt_vector, doc_vectors).flatten()
-    top_indices = similarities.argsort()[-9:][::-1]  # Get top 9 results
-
-    # Filter top recipes based on calorie limit
+    top_indices = similarities.argsort()[-10:][::-1]
     top_recipes = [recipes[i] for i in top_indices]
 
     if calorie_limit:
-        # Filter recipes based on calorie constraint
-        top_recipes = [r for r in top_recipes if r['calories'] <= calorie_limit]
+        top_recipes = [r for r in top_recipes if r.get("calories", 99999) <= calorie_limit]
 
-    # If no recipes meet the calorie constraint, return empty list
+    if main_ingredient:
+        top_recipes = [
+            r for r in top_recipes
+            if is_main_ingredient_match(main_ingredient, r.get("ingredients", []))
+        ]
+
     if not top_recipes:
         return jsonify({"recipes": []})
 
+    context = "\n".join([
+        f"- {r['name']} (Calories: {r['calories']}) - Ingredients: {', '.join(r['ingredients'])}"
+        for r in top_recipes
+    ])
+
+    full_prompt = f"""
+I have the following recipes:
+{context}
+
+Based on the user request: "{prompt}", which recipes would you recommend and why?
+Please return up to 3 suggestions.
+"""
+
+    llama_start = time.time()
+    try:
+        response = requests.post(
+            "http://localhost:11434/api/generate",
+            json={"model": "llama3", "prompt": full_prompt, "stream": False}
+        )
+        result = response.json()
+        llama_output = result.get("response", "").strip()
+    except Exception as e:
+        print("❌ LLaMA error:", e)
+        llama_output = "Sorry, the model failed to respond."
+    llama_end = time.time()
+
+    print(f"⏱️ Total time: {time.time() - start_time:.2f}s | LLaMA time: {llama_end - llama_start:.2f}s")
+    print("📨 Full prompt sent to LLaMA:\n", full_prompt)
+
     return jsonify({
+        "response": llama_output,
         "recipes": [
             {
                 "name": r["name"],
@@ -630,6 +788,24 @@ def chatbot_recommend():
             } for r in top_recipes
         ]
     })
+
+
+from flask import request
+
+@app.route('/recipe_lookup/<recipe_name>')
+def recipe_detail(recipe_name):
+    decoded_name = urllib.parse.unquote(recipe_name)
+    source = request.args.get("source")
+    prompt = request.args.get("prompt")
+
+    recipes = load_recipes()
+    recipe = next((r for r in recipes if r["name"] == decoded_name), None)
+
+    if recipe is None:
+        return "Recipe not found", 404
+
+    return render_template('recipe_detail.html', recipe=recipe, source=source, prompt=prompt)
+
 
 @app.route('/save_to_meal_planner', methods=['POST'])
 @login_required
