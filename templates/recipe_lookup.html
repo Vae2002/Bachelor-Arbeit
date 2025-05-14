@@ -53,7 +53,11 @@
                     <div class="card mb-3">
                         <img src="/static/food_images/${recipe.image}" class="card-img-top" alt="${recipe.name}">
                         <div class="card-body">
-                            <h5 class="card-title">${recipe.name}</h5>
+                            <h5 class="card-title">
+                                <a href="/recipe_lookup/${encodeURIComponent(recipe.name)}?source=chatbot&prompt=${encodeURIComponent(prompt)}">
+                                    ${recipe.name}
+                                </a>
+                            </h5>
                             <p class="card-text">Calories: ${recipe.calories}</p>
                         </div>
                     </div>
@@ -85,7 +89,12 @@
                     <!-- Image Tag -->
                     <img src="{{ url_for('static', filename='food_images/' ~ recipe.image) }}" class="card-img-top" alt="{{ recipe.name }}">
                     <div class="card-body">
-                        <h4 class="card-title">{{ recipe.name }}</h4>
+                        <h4 class="card-title">
+                            <a href="{{ url_for('recipe_detail', recipe_name=recipe.name|urlencode) }}">
+                                {{ recipe.name }}
+                            </a>
+                        </h4>
+
                         <h5 class="card-text">Calories: <strong>{{ recipe.calories }}</strong>kcal</h5>
 
                         <!-- Nutrient Toggle Button -->

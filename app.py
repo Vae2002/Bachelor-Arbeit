@@ -7,6 +7,7 @@ from werkzeug.utils import secure_filename
 from datetime import datetime, timedelta
 from models import db, User, Member, GroceryItem, MealPlan, Pantry
 from forms import MemberForm
+import urllib.parse
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -787,6 +788,23 @@ Please return up to 3 suggestions.
             } for r in top_recipes
         ]
     })
+
+
+from flask import request
+
+@app.route('/recipe_lookup/<recipe_name>')
+def recipe_detail(recipe_name):
+    decoded_name = urllib.parse.unquote(recipe_name)
+    source = request.args.get("source")
+    prompt = request.args.get("prompt")
+
+    recipes = load_recipes()
+    recipe = next((r for r in recipes if r["name"] == decoded_name), None)
+
+    if recipe is None:
+        return "Recipe not found", 404
+
+    return render_template('recipe_detail.html', recipe=recipe, source=source, prompt=prompt)
 
 
 @app.route('/save_to_meal_planner', methods=['POST'])
