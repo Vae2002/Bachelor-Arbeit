@@ -909,6 +909,7 @@ import pytesseract
 
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe' 
 
+# lookup opencv barcode recognition
 
 UPLOAD_FOLDER = 'static/uploads/ocr'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
