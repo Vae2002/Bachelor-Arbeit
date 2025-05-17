@@ -898,6 +898,103 @@ def meal_planner():
     )
 
 # =================== PANTRY ORGANIZATION ===================
+from flask import request, jsonify
+import os
+import pytesseract
+import cv2
+import numpy as np
+from pyzbar.pyzbar import decode
+from PIL import Image
+import pytesseract
+
+pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe' 
+
+# lookup opencv barcode recognition
+
+UPLOAD_FOLDER = 'static/uploads/ocr'
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+def preprocess_image_for_barcode(img):
+    # Convert to grayscale
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+    # Increase contrast using CLAHE (Contrast Limited Adaptive Histogram Equalization)
+    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8,8))
+    contrast = clahe.apply(gray)
+
+    # Sharpen image with a kernel
+    kernel = np.array([[0, -1, 0],
+                       [-1, 5,-1],
+                       [0, -1, 0]])
+    sharpened = cv2.filter2D(contrast, -1, kernel)
+
+    return sharpened
+
+def extract_barcode_and_text(image_path):
+    img = cv2.imread(image_path)
+    if img is None:
+        raise FileNotFoundError(f"Image not found: {image_path}")
+    print("Image loaded successfully.")
+
+    processed_img = preprocess_image_for_barcode(img)
+
+    # Save processed image to debug
+    cv2.imwrite('debug_processed.jpg', processed_img)
+
+    barcodes = decode(processed_img)
+    print(f"Barcodes found after preprocessing: {len(barcodes)}")
+
+    results = []
+
+    for barcode in barcodes:
+        barcode_data = barcode.data.decode('utf-8')
+        print(f"Barcode data: {barcode_data}")
+
+        x, y, w, h = barcode.rect
+
+        ocr_region_y_start = y + h
+        ocr_region_y_end = ocr_region_y_start + int(h * 0.5)
+        ocr_region = img[ocr_region_y_start:ocr_region_y_end, x:x+w]
+
+        ocr_pil = Image.fromarray(cv2.cvtColor(ocr_region, cv2.COLOR_BGR2RGB))
+        custom_config = r'--oem 3 --psm 7 -c tessedit_char_whitelist=0123456789'
+        ocr_text = pytesseract.image_to_string(ocr_pil, config=custom_config).strip()
+
+        print(f"OCR extracted digits below barcode: '{ocr_text}'")
+
+        results.append({
+            'barcode_data': barcode_data,
+            'ocr_text_below_barcode': ocr_text
+        })
+
+    if not results:
+        print("No barcodes detected.")
+    return results
+
+@app.route('/scan_barcode', methods=['POST'])
+@login_required
+def scan_barcode():
+    if 'image' not in request.files:
+        return jsonify({'error': 'No image uploaded'}), 400
+    
+    file = request.files['image']
+    if file.filename == '':
+        return jsonify({'error': 'No file selected'}), 400
+
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+    file.save(filepath)
+
+    try:
+        results = extract_barcode_and_text(filepath)
+        if not results:
+            return jsonify({'message': 'No barcodes detected'}), 200
+        return jsonify(results), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+
 @app.route('/pantry', methods=['GET', 'POST'])
 @login_required
 def pantry():

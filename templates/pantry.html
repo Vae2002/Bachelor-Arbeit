@@ -3,55 +3,377 @@
 {% block title %}Pantry{% endblock %}
 
 {% block content %}
-<h2 class="mb-4">Pantry Inventory</h2>
+    <h2 class="mb-4">Pantry Inventory</h2>
 
-<!-- Form to Add New Item -->
-<form method="POST" action="{{ url_for('pantry') }}" class="mb-4">
-    <div class="row g-3 align-items-end">
-        <div class="col-md-4">
-            <label for="item" class="form-label">Item Name</label>
-            <input type="text" class="form-control" id="item" name="item" required>
-        </div>
-        <div class="col-md-3">
-            <label for="quantity" class="form-label">Quantity</label>
-            <input type="number" class="form-control" id="quantity" name="quantity" required>
-        </div>
-        <div class="col-md-3">
-            <label for="expiration" class="form-label">Expiration Date</label>
-            <input type="date" class="form-control" id="expiration" name="expiration" required>
-        </div>
-        <div class="col-md-2">
-            <button type="submit" class="btn btn-success w-100">Add Item</button>
+    <!-- Modal -->
+    <div class="modal fade" id="productInfoModal" tabindex="-1" aria-labelledby="productInfoModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="productInfoModalLabel">Product Information</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p><strong>Product Name:</strong> <span id="modalProductName">Loading...</span></p>
+                <p><strong>Categories:</strong> <span id="modalCategories">Loading...</span></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+            </div>
         </div>
     </div>
-</form>
 
-<!-- Pantry Table -->
-<table class="table table-striped table-hover mt-4">
-    <thead class="table-dark">
-        <tr>
-            <th>Select</th>
-            <th>Item</th>
-            <th>Quantity</th>
-            <th>Expiration Date</th>
-            <th>Action</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for item in items %}
-        <tr>
-            <form method="POST" action="{{ url_for('pantry') }}">
-                <input type="hidden" name="item_id" value="{{ item.id }}">
-                <td><input type="checkbox" class="form-check-input" name="selected" {% if item.selected %}checked{% endif %}></td>
-                <td><input type="text" name="item" value="{{ item.name }}" class="form-control"></td>
-                <td><input type="number" name="quantity" value="{{ item.quantity }}" class="form-control"></td>
-                <td><input type="date" name="expiration" value="{{ item.expired }}" class="form-control"></td>
-                <td>
-                    <button type="submit" class="btn btn-primary btn-sm">Save</button>
-                </td>
-            </form>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+    <!-- Barcode OCR Section -->
+    <div class="mb-4">
+        <label for="barcode" class="form-label">Scan or Enter Barcode</label>
+        <div class="input-group">
+            <input type="text" id="barcode" class="form-control" placeholder="Enter barcode">
+            <button class="btn btn-info" onclick="fetchProductInfo()">Get Product Info</button>
+            <button class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#cameraModal">Scan with Camera</button>
+
+            <!-- Upload Image Button -->
+            <label class="btn btn-secondary mb-0" for="uploadBarcodeImage" style="cursor:pointer;">
+                Upload Image
+                <input type="file" id="uploadBarcodeImage" accept="image/*" style="display:none;">
+            </label>
+        </div>
+    </div>
+
+    <!-- Camera Modal for Barcode Scan -->
+    <div class="modal fade" id="cameraModal" tabindex="-1" aria-labelledby="cameraModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Scan Barcode</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" onclick="stopScanner()"></button>
+            </div>
+            <div class="modal-body">
+                <div id="scanner-wrapper" style="position: relative; width: 100%; height: 400px;">
+                <div id="scanner-container" style="width: 100%; height: 100%; background: #000;"></div>
+                <canvas id="scanner-overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></canvas>
+                </div>
+            </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upload Result Modal -->
+    <div class="modal fade" id="uploadResultModal" tabindex="-1" aria-labelledby="uploadResultModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="uploadResultModalLabel">Scanned Barcode Info</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            <div class="row">
+            <div class="col-md-5 text-center">
+                <img id="uploadedImagePreview" src="" alt="Uploaded Image" class="img-fluid border" style="max-height: 300px;">
+            </div>
+            <div class="col-md-7">
+                <p><strong>Barcode Number:</strong> <span id="uploadBarcodeNumber">Loading...</span></p>
+                <p><strong>Product Name:</strong> <span id="uploadProductName">Loading...</span></p>
+                <p><strong>Categories:</strong> <span id="uploadCategories">Loading...</span></p>
+            </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+        </div>
+    </div>
+    </div>
+
+    <!-- Form to Add New Item -->
+    <form method="POST" action="{{ url_for('pantry') }}" class="mb-4">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label for="item" class="form-label">Item Name</label>
+                <input type="text" class="form-control" id="item" name="item" required>
+            </div>
+            <div class="col-md-3">
+                <label for="quantity" class="form-label">Quantity</label>
+                <input type="number" class="form-control" id="quantity" name="quantity" required>
+            </div>
+            <div class="col-md-3">
+                <label for="expiration" class="form-label">Expiration Date</label>
+                <input type="date" class="form-control" id="expiration" name="expiration" required>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-success w-100">Add Item</button>
+            </div>
+        </div>
+    </form>
+
+    <!-- Pantry Table -->
+    <table class="table table-striped table-hover mt-4">
+        <thead class="table-dark">
+            <tr>
+                <th>Select</th>
+                <th>Item</th>
+                <th>Quantity</th>
+                <th>Expiration Date</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <form method="POST" action="{{ url_for('pantry') }}">
+                    <input type="hidden" name="item_id" value="{{ item.id }}">
+                    <td><input type="checkbox" class="form-check-input" name="selected" {% if item.selected %}checked{% endif %}></td>
+                    <td><input type="text" name="item" value="{{ item.name }}" class="form-control"></td>
+                    <td><input type="number" name="quantity" value="{{ item.quantity }}" class="form-control"></td>
+                    <td><input type="date" name="expiration" value="{{ item.expired }}" class="form-control"></td>
+                    <td>
+                        <button type="submit" class="btn btn-primary btn-sm">Save</button>
+                    </td>
+                </form>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <style>
+        #scanner-wrapper {
+            position: relative;
+            width: 100%;
+            height: 400px;
+            overflow: hidden;
+        }
+
+        #scanner-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        #scanner-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 10;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+    </style>
+
+    <!-- Include Bootstrap CSS & JS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Include QuaggaJS for barcode scanning -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+
+    <!-- Include Tesseract.js for OCR -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js"></script>
+
+    <script>
+        // Fetch product info and show modal
+        function fetchProductInfo() {
+            const barcode = document.getElementById('barcode').value.trim();
+            if (!barcode) return alert('Please enter a barcode.');
+
+            fetch(`https://world.openfoodfacts.org/api/v2/product/${barcode}.json`)
+                .then(response => {
+                    if (!response.ok) throw new Error("Network response was not ok.");
+                    return response.json();
+                })
+                .then(data => {
+                    const product = data.product;
+                    if (product) {
+                        document.getElementById('modalProductName').textContent = product.product_name || 'N/A';
+                        document.getElementById('modalCategories').textContent = product.categories || 'N/A';
+                        const modal = new bootstrap.Modal(document.getElementById('productInfoModal'));
+                        modal.show();
+                    } else {
+                        alert("Product not found.");
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching product:', error);
+                    alert("Error fetching product info.");
+                });
+        }
+
+        // Upload image and scan barcode
+        const uploadResultModalEl = document.getElementById('uploadResultModal');
+        const uploadResultModal = new bootstrap.Modal(uploadResultModalEl);
+
+        document.getElementById('uploadBarcodeImage').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // Reset modal content before showing
+            document.getElementById('uploadedImagePreview').src = '';
+            document.getElementById('uploadBarcodeNumber').textContent = 'Loading...';
+            document.getElementById('uploadProductName').textContent = 'Loading...';
+            document.getElementById('uploadCategories').textContent = 'Loading...';
+
+            // Show modal
+            uploadResultModal.show();
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const imgSrc = e.target.result;
+                document.getElementById('uploadedImagePreview').src = imgSrc;
+
+                // Decode barcode from image using Quagga decodeSingle
+                Quagga.decodeSingle({
+                    src: imgSrc,
+                    numOfWorkers: 0, // required for decodeSingle
+                    inputStream: {
+                        size: 800, // increase input image size for better detection
+                    },
+                    decoder: {
+                        readers: ["ean_reader", "ean_8_reader", "code_128_reader", "upc_reader", "upc_e_reader"],
+                        multiple: false
+                    },
+                    locate: true, // enable barcode location before decode, helps if barcode is not centered
+                    locate: true,
+                    src: imgSrc,
+                }, function(result) {
+                    if (result && result.codeResult) {
+                        const code = result.codeResult.code;
+                        document.getElementById('uploadBarcodeNumber').textContent = code;
+
+                        // Fetch product info
+                        fetch(`https://world.openfoodfacts.org/api/v2/product/${code}.json`)
+                            .then(response => response.json())
+                            .then(data => {
+                                const product = data.product;
+                                if (product) {
+                                    document.getElementById('uploadProductName').textContent = product.product_name || 'N/A';
+                                    document.getElementById('uploadCategories').textContent = product.categories || 'N/A';
+                                } else {
+                                    document.getElementById('uploadProductName').textContent = 'Product not found';
+                                    document.getElementById('uploadCategories').textContent = 'N/A';
+                                }
+                            })
+                            .catch(() => {
+                                document.getElementById('uploadProductName').textContent = 'Error fetching product';
+                                document.getElementById('uploadCategories').textContent = 'N/A';
+                            });
+                    } else {
+                        document.getElementById('uploadBarcodeNumber').textContent = 'No barcode detected';
+                        document.getElementById('uploadProductName').textContent = 'N/A';
+                        document.getElementById('uploadCategories').textContent = 'N/A';
+                    }
+                });
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // Start camera scanner
+        function startScanner() {
+            if (typeof Quagga === 'undefined') {
+                alert("QuaggaJS is not loaded.");
+                return;
+            }
+
+            Quagga.init({
+                inputStream: {
+                    name: "Live",
+                    type: "LiveStream",
+                    target: document.querySelector('#scanner-container'),
+                    constraints: {
+                        width: 640,
+                        height: 400,
+                        facingMode: "environment"
+                    }
+                },
+                decoder: {
+                    readers: ["ean_reader"] 
+                    // Read about barcode decoding
+                }
+            }, function(err) {
+                if (err) {
+                    console.error(err);
+                    alert("Error initializing scanner: " + err);
+                    return;
+                }
+                Quagga.start();
+            });
+
+            Quagga.onDetected(function(result) {
+                if (result && result.codeResult) {
+                    const code = result.codeResult.code;
+                    document.getElementById('barcode').value = code;
+
+                    // Stop scanning after first successful detection
+                    Quagga.stop();
+
+                    // Hide the modal
+                    const cameraModal = bootstrap.Modal.getInstance(document.getElementById('cameraModal'));
+                    if (cameraModal) cameraModal.hide();
+
+                    // Fetch product info automatically
+                    fetchProductInfo();
+                }
+            });
+        }
+
+        // Stop camera scanner when modal closes
+        function stopScanner() {
+            if (Quagga) {
+                Quagga.stop();
+            }
+        }
+
+        // When camera modal is shown, start scanner
+        document.getElementById('cameraModal').addEventListener('shown.bs.modal', startScanner);
+
+        // When camera modal is hidden, stop scanner
+        document.getElementById('cameraModal').addEventListener('hidden.bs.modal', stopScanner);
+    </script>
+
+    <div class="mb-4">
+        <label for="barcodeImageUpload" class="form-label">Upload Image for Barcode Scan</label>
+        <input type="file" id="barcodeImageUpload" accept="image/*" class="form-control">
+        <button id="scanImageBtn" class="btn btn-primary mt-2">Scan Barcode</button>
+    </div>
+
+    <div id="scanResults" style="white-space: pre-wrap; background: #f8f9fa; padding: 10px; border-radius: 5px; margin-top: 10px;"></div>
+
+    <script>
+    document.getElementById('scanImageBtn').addEventListener('click', () => {
+        const input = document.getElementById('barcodeImageUpload');
+        const file = input.files[0];
+        if (!file) {
+            alert('Please select an image first.');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('image', file);
+
+        fetch('{{ url_for("scan_barcode") }}', {
+            method: 'POST',
+            body: formData
+        }).then(response => response.json())
+        .then(data => {
+            const resultDiv = document.getElementById('scanResults');
+            if (data.error) {
+                resultDiv.textContent = "Error: " + data.error;
+            } else if (data.message) {
+                resultDiv.textContent = data.message;
+            } else {
+                // Format the results nicely
+                let output = '';
+                data.forEach((item, index) => {
+                    output += `Result ${index+1}:\nBarcode: ${item.barcode_data}\nOCR below barcode: ${item.ocr_text_below_barcode}\n\n`;
+                });
+                resultDiv.textContent = output;
+            }
+        }).catch(err => {
+            document.getElementById('scanResults').textContent = 'Error scanning image: ' + err;
+        });
+    });
+    </script>
+
 {% endblock %}
