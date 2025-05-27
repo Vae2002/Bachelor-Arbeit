@@ -162,6 +162,8 @@ def add_member():
 
     return render_template('add_member.html', form=form)
 
+from flask import current_app
+
 @app.route('/change_password', methods=['POST'])
 @login_required
 def change_password():
@@ -178,7 +180,15 @@ def change_password():
         return redirect(url_for('profile'))
 
     current_user.password = generate_password_hash(new_password)
+
+    # Debugging
+    print("Dirty before commit:", db.session.dirty)
+
+    with db.session.no_autoflush:
+        current_user.password = generate_password_hash(new_password)
+
     db.session.commit()
+
     flash("Password updated successfully!", "success")
     return redirect(url_for('profile'))
 
@@ -405,9 +415,10 @@ RECIPES_CSV_PATH = 'datasets/recipes_with_images_and_nutrients.csv'
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 IMAGE_FOLDER_PATH = os.path.join(BASE_DIR, 'Food Images')
 
+df = pd.read_csv(RECIPES_CSV_PATH)
+
 # Load CSV into DataFrame using pandas
 def load_recipes():
-    df = pd.read_csv(RECIPES_CSV_PATH)
     recipes = []
     for index, row in df.iterrows():
         image_filename = row['Image_Name'].strip() + '.jpg'
@@ -481,11 +492,11 @@ def load_recipes():
 
         # Modify your recipe dict
         recipe = {
-            "name": row['Title'],
+            "name": row['Recipe Name'],
             "calories": row['Calories'],
             "macro": parse_nutrients(row['Macro_Nutrients']),
             "micro": parse_nutrients(row['Micro_Nutrients']),
-            "ingredients": [ing.strip().replace('\n', ' ') for ing in row['Cleaned_Ingredients'].split(',')],
+            "ingredients": [ing.strip().replace('\n', ' ') for ing in row['Ingredients'].split(',')],
             "instructions": split_instructions(row['Instructions']),
             "image": image
         }
