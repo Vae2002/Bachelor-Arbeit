@@ -136,31 +136,52 @@ def profile():
 @login_required
 def add_member():
     form = MemberForm()
-    if request.method == 'POST':
-        print("POST received")
-        print("Form valid:", form.validate_on_submit())
-        print("Errors:", form.errors)
 
+    # Case 1: Diet calculator POST
+    if request.method == 'POST' and request.form.get('save_to_profile') == 'true':
+        member_id = request.form.get('member_id')
+        if member_id:
+            member = Member.query.filter_by(id=member_id, user_id=current_user.id).first()
+            if member:
+                # Only update nutrition fields if provided
+                member.daily_calories = request.form.get('daily_calories') or member.daily_calories
+                member.protein_grams = request.form.get('protein_grams') or member.protein_grams
+                member.fat_grams = request.form.get('fat_grams') or member.fat_grams
+                member.carbs_grams = request.form.get('carbs_grams') or member.carbs_grams
+
+                db.session.commit()
+                flash('Member nutritional values updated.')
+            else:
+                flash('Member not found.')
+        else:
+            flash('No member selected.')
+        return redirect(url_for('profile'))
+
+    # Case 2: Adding new member from modal
     if form.validate_on_submit():
+        if not form.name.data:
+            print(form.errors)
+            flash("Name is required.")
+            return redirect(url_for('profile'))
+
         member = Member(
             user_id=current_user.id,
             name=form.name.data,
-            daily_calories=form.daily_calories.data,
-            protein_grams=form.protein_grams.data,
-            fat_grams=form.fat_grams.data,
-            carbs_grams=form.carbs_grams.data,
-            cuisines=json.dumps(form.cuisines.data),
-            allergies=json.dumps(form.allergies.data),
-            dietary_restrictions=json.dumps(form.dietary_restrictions.data)
+            daily_calories = float(form.daily_calories.data) if form.daily_calories.data else None,
+            protein_grams= float(form.protein_grams.data) if form.protein_grams.data else None,
+            fat_grams= float(form.fat_grams.data) if form.fat_grams.data else None,
+            carbs_grams= float(form.carbs_grams.data) if form.carbs_grams.data else None,
+            cuisines=json.dumps(request.form.getlist('cuisines')) if request.form.getlist('cuisines') else None,
+            allergies=json.dumps(request.form.getlist('allergies')) if request.form.getlist('allergies') else None,
+            dietary_restrictions=json.dumps(request.form.getlist('dietary_restrictions')) if request.form.getlist('dietary_restrictions') else None
         )
         db.session.add(member)
         db.session.commit()
-
         flash("Member added!")
-        print("Members now:", Member.query.filter_by(user_id=current_user.id).all())
         return redirect(url_for('profile'))
 
-    return render_template('add_member.html', form=form)
+    flash("Failed to add member")
+    return redirect(url_for('profile'))  # fallback
 
 from flask import current_app
 

@@ -129,17 +129,35 @@
                                 </div>
 
                                 <div class="mb-3">
-                                    {{ form.cuisines.label }}
-                                    {{ form.cuisines(class="form-control", multiple=True) }}
+                                    <label class="form-label">Cuisines:</label>
+                                    <div class="form-check">
+                                        {% for cuisine in form.cuisines.choices %}
+                                            <input class="form-check-input" type="checkbox" name="cuisines" id="cuisine_{{ loop.index }}" value="{{ cuisine[0] }}">
+                                            <label class="form-check-label" for="cuisine_{{ loop.index }}">{{ cuisine[1] }}</label><br>
+                                        {% endfor %}
+                                    </div>
                                 </div>
+
                                 <div class="mb-3">
-                                    {{ form.allergies.label }}
-                                    {{ form.allergies(class="form-control", multiple=True) }}
+                                    <label class="form-label">Allergies:</label>
+                                    <div class="form-check">
+                                        {% for allergy in form.allergies.choices %}
+                                            <input class="form-check-input" type="checkbox" name="allergies" id="allergy_{{ loop.index }}" value="{{ allergy[0] }}">
+                                            <label class="form-check-label" for="allergy_{{ loop.index }}">{{ allergy[1] }}</label><br>
+                                        {% endfor %}
+                                    </div>
                                 </div>
+
                                 <div class="mb-3">
-                                    {{ form.dietary_restrictions.label }}
-                                    {{ form.dietary_restrictions(class="form-control", multiple=True) }}
+                                    <label class="form-label">Dietary Restrictions:</label>
+                                    <div class="form-check">
+                                        {% for restriction in form.dietary_restrictions.choices %}
+                                            <input class="form-check-input" type="checkbox" name="dietary_restrictions" id="restriction_{{ loop.index }}" value="{{ restriction[0] }}">
+                                            <label class="form-check-label" for="restriction_{{ loop.index }}">{{ restriction[1] }}</label><br>
+                                        {% endfor %}
+                                    </div>
                                 </div>
+
                             </div>
                             <div class="modal-footer">
                                 <button type="submit" class="btn btn-success">Add Member</button>

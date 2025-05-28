@@ -19,8 +19,13 @@
             </div>
 
             <!-- Save to Profile Button -->
-            <form method="POST" action="{{ url_for('diet_calculator') }}">
+            <form method="POST" action="{{ url_for('add_member') }}">
                 <input type="hidden" name="save_to_profile" value="true">
+                <input type="hidden" name="daily_calories" value="{{ tdee }}">
+                <input type="hidden" name="protein_grams" value="{{ protein_grams }}">
+                <input type="hidden" name="fat_grams" value="{{ fat_grams }}">
+                <input type="hidden" name="carbs_grams" value="{{ carbs_grams }}">
+
                 <div class="mb-3">
                     <label for="member_id" class="form-label">Apply to Member (optional):</label>
                     <select name="member_id" class="form-control">
@@ -30,6 +35,7 @@
                         {% endfor %}
                     </select>
                 </div>
+
                 <button type="submit" class="btn btn-success w-100 mt-4">Save to Profile</button>                
             </form>
         {% endif %}
