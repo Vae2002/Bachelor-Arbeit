@@ -179,6 +179,14 @@
                             {% include "diet_calculator_form.html" %}
                         </div>
 
+                        <div class="mt-3">
+                            <p><strong>BMR:</strong> <span id="calcBMR">-</span></p>
+                            <p><strong>Calories:</strong> <span id="calcCalories">-</span></p>
+                            <p><strong>Protein:</strong> <span id="calcProtein">-</span></p>
+                            <p><strong>Fat:</strong> <span id="calcFat">-</span></p>
+                            <p><strong>Carbs:</strong> <span id="calcCarbs">-</span></p>
+                        </div>
+
                         <div class="modal-footer">
                             <button type="button" class="btn btn-primary" onclick="applyDietValues()">Apply to Member Form</button>
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -262,6 +270,31 @@
             addMemberModal.show();
         }, 300); // Delay ensures smooth transition
     }
+
+    document.getElementById('diet-form').addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const form = e.target;
+        const formData = new FormData(form);
+
+        fetch('/member_diet_calculator', {
+            method: 'POST',
+            body: formData
+        }).then(res => res.json())
+        .then(data => {
+            if (data.error) {
+                alert(data.error);
+                return;
+            }
+
+            document.getElementById('calcBMR').innerText = data.bmr;
+            document.getElementById('calcCalories').innerText = data.tdee;
+            document.getElementById('calcProtein').innerText = data.protein;
+            document.getElementById('calcFat').innerText = data.fat;
+            document.getElementById('calcCarbs').innerText = data.carbs;
+        });
+    });
+
 </script>
 
 {% endblock %}

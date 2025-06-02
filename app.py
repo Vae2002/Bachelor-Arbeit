@@ -277,6 +277,34 @@ def home():
     return render_template('index.html', user=current_user)
 
 # =================== DIET CALCULATOR ===================
+
+def calculate_diet(weight, height, age, gender, activity, protein_pct, fat_pct, carbs_pct):
+    # BMR calculation
+    if gender == 'male':
+        bmr = 10 * weight + 6.25 * height - 5 * age + 5
+    else:
+        bmr = 10 * weight + 6.25 * height - 5 * age - 161
+
+    activity_multipliers = {
+        'sedentary': 1.2,
+        'light': 1.375,
+        'moderate': 1.55,
+        'intense': 1.725
+    }
+
+    tdee = bmr * activity_multipliers.get(activity, 1.2)
+    
+    # Macronutrient Breakdown
+    protein_pct = float(request.form['protein']) / 100
+    fat_pct = float(request.form['fat']) / 100
+    carbs_pct = 1 - protein_pct - fat_pct
+
+    protein_grams = (tdee * protein_pct) / 4
+    fat_grams = (tdee * fat_pct) / 9
+    carbs_grams = (tdee * carbs_pct) / 4
+
+    return round(bmr), round(tdee), round(protein_grams), round(fat_grams), round(carbs_grams)
+
 @app.route('/diet_calculator', methods=['GET', 'POST'])
 @login_required
 def diet_calculator():
@@ -284,6 +312,14 @@ def diet_calculator():
     bmr = tdee = protein_grams = fat_grams = carbs_grams = None 
 
     if request.method == 'POST':
+        
+        # result = calculate_diet(request.form)
+        # bmr = result['bmr']
+        # tdee = result['tdee']
+        # protein_grams = result['protein_grams']
+        # fat_grams = result['fat_grams']
+        # carbs_grams = result['carbs_grams']
+
         member_id = request.form.get('member_id')
         if member_id:
             member = Member.query.filter_by(id=member_id, user_id=current_user.id).first()
@@ -296,8 +332,6 @@ def diet_calculator():
                 flash(f"Diet info saved to {member.name}'s profile!", "success")
             else:
                 flash("Member not found or unauthorized.", "danger")
-                
-        print(f"Form data: {request.form}") 
 
         weight = request.form.get('weight')
         if weight is None:
@@ -310,39 +344,15 @@ def diet_calculator():
         age = int(request.form['age'])
         gender = request.form['gender']
         activity = request.form['activity']
+        protein = float(request.form['protein'])
+        fat = float(request.form['fat'])
+        carbs = float(request.form['carbs'])
 
-        # Optional body measurements
-        neck = float(request.form['neck']) if request.form.get('neck') else None
-        waist = float(request.form['waist']) if request.form.get('waist') else None
-        hip = float(request.form['hip']) if request.form.get('hip') else None
 
-        # BMR Calculation
-        if gender == 'male':
-            bmr = 10 * weight + 6.25 * height - 5 * age + 5
-        else:
-            if neck and waist:
-                bmr = 655 + (9.6 * weight) + (1.8 * height) - (4.7 * age) + (6.75 * (waist - neck))
-            else:
-                bmr = 10 * weight + 6.25 * height - 5 * age - 161
-
-        # Activity Multipliers
-        activity_multipliers = {
-            'sedentary': 1.2,
-            'light': 1.375,
-            'moderate': 1.55,
-            'intense': 1.725
-        }
-        tdee = bmr * activity_multipliers[activity]
-
-        # Macronutrient Breakdown
-        protein_percentage = float(request.form['protein']) / 100
-        fat_percentage = float(request.form['fat']) / 100
-        carb_percentage = 1 - protein_percentage - fat_percentage
-
-        protein_grams = (tdee * protein_percentage) / 4
-        fat_grams = (tdee * fat_percentage) / 9
-        carbs_grams = (tdee * carb_percentage) / 4
-
+        bmr, tdee, protein_grams, fat_grams, carbs_grams = calculate_diet(
+            weight, height, age, gender, activity, protein, fat, carbs
+        )
+        
         # Save the calculated values to the database (before 'Save to Profile')
         current_user.daily_calories = tdee
         current_user.protein_grams = protein_grams
@@ -401,10 +411,41 @@ def diet_calculator():
             protein_grams=protein_grams,
             fat_grams=fat_grams,
             carbs_grams=carbs_grams,
-            user=current_user  # <-- Add this
+            user=current_user 
         )
 
     return render_template('diet_calculator.html')
+
+@app.route('/member_diet_calculator', methods=['POST'])
+def member_diet_calculator():
+    data = request.form
+
+    try:
+        weight = float(data['weight'])
+        height = float(data['height'])
+        age = int(data['age'])
+        gender = data['gender']
+        activity = data['activity']
+        protein = float(data['protein'])
+        fat = float(data['fat'])
+        carbs = float(data['carbs'])
+
+        bmr, tdee, protein_grams, fat_grams, carbs_grams = calculate_diet(
+            weight, height, age, gender, activity, protein, fat, carbs
+        )
+
+        return jsonify({
+            'bmr': bmr,
+            'tdee': tdee,
+            'protein': protein_grams,
+            'fat': fat_grams,
+            'carbs': carbs_grams
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+    
+
 
 # =================== GROCERY LIST ===================
 # Grocery List Routes
