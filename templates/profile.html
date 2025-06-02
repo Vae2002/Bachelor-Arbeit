@@ -176,24 +176,9 @@
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div class="modal-body">
-                            <!-- Mock calculator fields -->
-                            <div class="mb-3">
-                                <label for="calcCalories" class="form-label">Calories</label>
-                                <input type="number" class="form-control" id="calcCalories">
-                            </div>
-                            <div class="mb-3">
-                                <label for="calcProtein" class="form-label">Protein (g)</label>
-                                <input type="number" class="form-control" id="calcProtein">
-                            </div>
-                            <div class="mb-3">
-                                <label for="calcFat" class="form-label">Fat (g)</label>
-                                <input type="number" class="form-control" id="calcFat">
-                            </div>
-                            <div class="mb-3">
-                                <label for="calcCarbs" class="form-label">Carbohydrates (g)</label>
-                                <input type="number" class="form-control" id="calcCarbs">
-                            </div>
+                            {% include "diet_calculator_form.html" %}
                         </div>
+
                         <div class="modal-footer">
                             <button type="button" class="btn btn-primary" onclick="applyDietValues()">Apply to Member Form</button>
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
