@@ -84,41 +84,45 @@
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
             <a class="navbar-brand" href="/">Kitchen App</a>
-            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
+
+            <!-- Collapsible nav content -->
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('meal_planner') }}">Meal Planner</a>
-                    </li> 
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('recipe_lookup') }}">Recipe Lookup</a>
-                    </li> 
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('diet_calculator') }}">Diet Calculator</a>
+                    <a class="nav-link" href="{{ url_for('meal_planner') }}">Meal Planner</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('pantry') }}">Pantry</a>
-                    </li>       
+                    <a class="nav-link" href="{{ url_for('recipe_lookup') }}">Recipe Lookup</a>
+                    </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('grocery') }}">Grocery List</a>
-                    </li>             
-
+                    <a class="nav-link" href="{{ url_for('diet_calculator') }}">Diet Calculator</a>
+                    </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('profile') }}">
-                            {% if current_user.profile_pic %}
-                                <img src="{{ url_for('static', filename='uploads/' + current_user.profile_pic) }}" class="rounded-circle" width="40" height="40">
-                            {% else %}
-                                <div class="rounded-circle bg-primary text-white d-flex justify-content-center align-items-center" style="width: 40px; height: 40px;">
-                                    <span>{{ current_user.username[0].upper() }}</span>
-                                </div>
-                            {% endif %}
-                        </a>
+                    <a class="nav-link" href="{{ url_for('pantry') }}">Pantry</a>
+                    </li>
+                    <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('grocery') }}">Grocery List</a>
                     </li>
 
                     <li class="nav-item">
-                        <a class="nav-link btn btn-danger text-white px-3 py-1" href="{{ url_for('logout') }}">Logout</a>
+                    <a class="nav-link" href="{{ url_for('profile') }}">
+                        {% if current_user.profile_pic %}
+                        <img src="{{ url_for('static', filename='uploads/' + current_user.profile_pic) }}" class="rounded-circle" width="40" height="40">
+                        {% else %}
+                        <div class="rounded-circle bg-primary text-white d-flex justify-content-center align-items-center" style="width: 40px; height: 40px;">
+                            <span>{{ current_user.username[0].upper() }}</span>
+                        </div>
+                        {% endif %}
+                    </a>
+                    </li>
+
+                    <li class="nav-item">
+                    <a class="nav-link btn btn-danger text-white px-3 py-1" href="{{ url_for('logout') }}">Logout</a>
                     </li>
                 </ul>
             </div>
