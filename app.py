@@ -22,6 +22,7 @@ with app.app_context():
 # Configure upload folder
 UPLOAD_FOLDER = 'static/uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # Initialize LoginManager
@@ -127,6 +128,62 @@ def profile():
     return render_template(
         "profile.html",
         user=current_user,
+        members=members,
+        selected_member=selected_member,
+        form=form 
+    )
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+@app.route('/edit_profile', methods=['GET', 'POST'])
+@login_required
+def edit_profile():
+    user = current_user 
+
+    if request.method == 'POST':
+        user.username = request.form['username']
+        user.email = request.form['email']
+        user.bio = request.form.get('bio', '')
+
+        # Handle profile picture upload
+        if 'profile_pic' in request.files:
+            file = request.files['profile_pic']
+            if file and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                file.save(filepath)
+
+                # Optionally remove old profile pic
+                if user.profile_pic and os.path.exists(os.path.join(app.config['UPLOAD_FOLDER'], user.profile_pic)):
+                    os.remove(os.path.join(app.config['UPLOAD_FOLDER'], user.profile_pic))
+
+                user.profile_pic = filename
+
+        db.session.commit()
+        flash('Profile updated successfully!', 'success')
+        return redirect(url_for('edit_profile'))
+
+    # === Replicate logic from profile() ===
+    members = Member.query.filter_by(user_id=current_user.id).all()
+    selected_member_id = request.args.get('member_id')
+
+    selected_member = None
+    if selected_member_id:
+        selected_member = Member.query.filter_by(id=selected_member_id, user_id=current_user.id).first()
+    elif members:
+        selected_member = members[0]
+
+    if selected_member:
+        selected_member.cuisines = json.loads(selected_member.cuisines or "[]")
+        selected_member.allergies = json.loads(selected_member.allergies or "[]")
+        selected_member.dietary_restrictions = json.loads(selected_member.dietary_restrictions or "[]")
+
+    form = MemberForm()
+
+    return render_template(
+        "profile.html",
+        user=user,
         members=members,
         selected_member=selected_member,
         form=form 
@@ -943,9 +1000,9 @@ pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tessera
 
 # lookup opencv barcode recognition
 
-UPLOAD_FOLDER = 'static/uploads/ocr'
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+UPLOAD_FOLDER_OCR = 'static/uploads/ocr'
+os.makedirs(UPLOAD_FOLDER_OCR, exist_ok=True)
+app.config['UPLOAD_FOLDER_OCR'] = UPLOAD_FOLDER_OCR
 
 def preprocess_image_for_barcode(img):
     # Convert to grayscale
@@ -1014,7 +1071,7 @@ def scan_barcode():
     if file.filename == '':
         return jsonify({'error': 'No file selected'}), 400
 
-    filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+    filepath = os.path.join(app.config['UPLOAD_FOLDER_OCR'], file.filename)
     file.save(filepath)
 
     try:
