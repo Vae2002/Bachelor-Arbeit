@@ -44,7 +44,7 @@
 
                 <!-- Select or Add Member -->
                 <div class="dropdown mb-3">
-                    <label class="form-label">Member:</label>
+                    <br>
                     <button class="btn btn-success dropdown-toggle w-100" type="button" id="memberDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                         Select Member
                     </button>
@@ -66,7 +66,7 @@
 
                 {% if selected_member %}
                     <div id="memberInfoSection" class="mb-3">
-                        <h5 class="text-center">Member Info: {{ selected_member.name }}</h5>
+                        <h3 class="text-center">Member: <strong>{{ selected_member.name }}</strong></h3>
                         <p><strong>Calories:</strong> {{ selected_member.daily_calories or 'N/A' }}</p>
                         <p><strong>Protein:</strong> {{ selected_member.protein_grams or 'N/A' }}g</p>
                         <p><strong>Fat:</strong> {{ selected_member.fat_grams or 'N/A' }}g</p>
