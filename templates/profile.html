@@ -10,24 +10,34 @@
         <div class="card-body">
             <h5 class="card-title text-center">{{ user.username }}</h5>
 
-            <!-- Profile Picture -->
-            <div class="text-center mb-3">
-                <img src="{{ url_for('static', filename='uploads/' + user.profile_pic) }}" alt="Profile Picture" class="rounded-circle" width="100">
-            </div>
+            <form action="{{ url_for('edit_profile') }}" method="POST" enctype="multipart/form-data">
+                <!-- Profile Picture -->
+                <div class="text-center mb-3">
+                    <img src="{{ url_for('static', filename='uploads/' + user.profile_pic) }}" alt="Profile Picture" class="rounded-circle" width="100">
+                </div>
 
-            <div class="mb-3">
-                <label class="form-label">Username:</label>
-                <input type="text" name="username" class="form-control" value="{{ user.username }}" required>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Email:</label>
-                <input type="email" name="email" class="form-control" value="{{ user.email }}">
-            </div>
+                <div class="mb-3">
+                    <label class="form-label">Username:</label>
+                    <input type="text" name="username" class="form-control" value="{{ user.username }}" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Email:</label>
+                    <input type="email" name="email" class="form-control" value="{{ user.email }}">
+                </div>
 
-            <div class="mb-3">
-                <label class="form-label">Bio:</label>
-                <textarea name="bio" class="form-control">{{ user.bio }}</textarea>
-            </div>
+                <div class="mb-3">
+                    <label class="form-label">Bio:</label>
+                    <textarea name="bio" class="form-control">{{ user.bio }}</textarea>
+                </div>
+
+                <!-- Profile Picture Upload -->
+                <div class="mb-3">
+                    <label class="form-label">Profile Picture:</label>
+                    <input type="file" name="profile_pic" class="form-control">
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100">Save Profile Changes</button>
+            </form>
 
             <!-- Profile Form -->
             <form method="POST" enctype="multipart/form-data">
@@ -66,16 +76,6 @@
                         <p><strong>Restrictions:</strong> {{ selected_member.dietary_restrictions | join(', ') }}</p>
                     </div>
                 {% endif %}
-
-
-
-                <!-- Profile Picture Upload -->
-                <div class="mb-3">
-                    <label class="form-label">Profile Picture:</label>
-                    <input type="file" name="profile_pic" class="form-control">
-                </div>
-
-                <button type="submit" class="btn btn-primary w-100">Save Profile Changes</button>
             </form>   
 
             <!-- Add Member Modal -->
@@ -129,17 +129,35 @@
                                 </div>
 
                                 <div class="mb-3">
-                                    {{ form.cuisines.label }}
-                                    {{ form.cuisines(class="form-control", multiple=True) }}
+                                    <label class="form-label">Cuisines:</label>
+                                    <div class="form-check">
+                                        {% for cuisine in form.cuisines.choices %}
+                                            <input class="form-check-input" type="checkbox" name="cuisines" id="cuisine_{{ loop.index }}" value="{{ cuisine[0] }}">
+                                            <label class="form-check-label" for="cuisine_{{ loop.index }}">{{ cuisine[1] }}</label><br>
+                                        {% endfor %}
+                                    </div>
                                 </div>
+
                                 <div class="mb-3">
-                                    {{ form.allergies.label }}
-                                    {{ form.allergies(class="form-control", multiple=True) }}
+                                    <label class="form-label">Allergies:</label>
+                                    <div class="form-check">
+                                        {% for allergy in form.allergies.choices %}
+                                            <input class="form-check-input" type="checkbox" name="allergies" id="allergy_{{ loop.index }}" value="{{ allergy[0] }}">
+                                            <label class="form-check-label" for="allergy_{{ loop.index }}">{{ allergy[1] }}</label><br>
+                                        {% endfor %}
+                                    </div>
                                 </div>
+
                                 <div class="mb-3">
-                                    {{ form.dietary_restrictions.label }}
-                                    {{ form.dietary_restrictions(class="form-control", multiple=True) }}
+                                    <label class="form-label">Dietary Restrictions:</label>
+                                    <div class="form-check">
+                                        {% for restriction in form.dietary_restrictions.choices %}
+                                            <input class="form-check-input" type="checkbox" name="dietary_restrictions" id="restriction_{{ loop.index }}" value="{{ restriction[0] }}">
+                                            <label class="form-check-label" for="restriction_{{ loop.index }}">{{ restriction[1] }}</label><br>
+                                        {% endfor %}
+                                    </div>
                                 </div>
+
                             </div>
                             <div class="modal-footer">
                                 <button type="submit" class="btn btn-success">Add Member</button>
@@ -158,24 +176,9 @@
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div class="modal-body">
-                            <!-- Mock calculator fields -->
-                            <div class="mb-3">
-                                <label for="calcCalories" class="form-label">Calories</label>
-                                <input type="number" class="form-control" id="calcCalories">
-                            </div>
-                            <div class="mb-3">
-                                <label for="calcProtein" class="form-label">Protein (g)</label>
-                                <input type="number" class="form-control" id="calcProtein">
-                            </div>
-                            <div class="mb-3">
-                                <label for="calcFat" class="form-label">Fat (g)</label>
-                                <input type="number" class="form-control" id="calcFat">
-                            </div>
-                            <div class="mb-3">
-                                <label for="calcCarbs" class="form-label">Carbohydrates (g)</label>
-                                <input type="number" class="form-control" id="calcCarbs">
-                            </div>
+                            {% include "diet_calculator_form.html" %}
                         </div>
+
                         <div class="modal-footer">
                             <button type="button" class="btn btn-primary" onclick="applyDietValues()">Apply to Member Form</button>
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>

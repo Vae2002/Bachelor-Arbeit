@@ -1,6 +1,9 @@
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from flask_login import UserMixin
+from flask_wtf import FlaskForm
+from wtforms.validators import Optional
+from wtforms import StringField, FloatField, SelectMultipleField
 
 # =================== DATABASE ===================
 
@@ -30,6 +33,27 @@ class Member(db.Model):
     cuisines = db.Column(db.Text, nullable=True, default="[]")  
     allergies = db.Column(db.Text, nullable=True, default="[]") 
     dietary_restrictions = db.Column(db.Text, nullable=True, default="[]")
+
+class SafeFloatField(FloatField):
+    def process_formdata(self, valuelist):
+        if valuelist:
+            try:
+                self.data = float(valuelist[0]) if valuelist[0].strip() != '' else None
+            except ValueError:
+                self.data = None
+                raise ValueError('Invalid number format')
+
+
+class MemberForm(FlaskForm):
+    name = SafeFloatField('Name', validators=[Optional()])
+    daily_calories = SafeFloatField('Daily Calories', validators=[Optional()])
+    protein_grams = SafeFloatField('Protein (g)', validators=[Optional()])
+    fat_grams = SafeFloatField('Fat (g)', validators=[Optional()])
+    carbs_grams = SafeFloatField('Carbs (g)', validators=[Optional()])
+    cuisines = SelectMultipleField('Cuisines', choices=[...], validators=[Optional()])
+    allergies = SelectMultipleField('Allergies', choices=[...], validators=[Optional()])
+    dietary_restrictions = SelectMultipleField('Restrictions', choices=[...], validators=[Optional()])
+
 
 # GroceryItem Model
 class GroceryItem(db.Model):

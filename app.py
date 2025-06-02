@@ -22,6 +22,7 @@ with app.app_context():
 # Configure upload folder
 UPLOAD_FOLDER = 'static/uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # Initialize LoginManager
@@ -132,35 +133,114 @@ def profile():
         form=form 
     )
 
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+@app.route('/edit_profile', methods=['GET', 'POST'])
+@login_required
+def edit_profile():
+    user = current_user 
+
+    if request.method == 'POST':
+        user.username = request.form['username']
+        user.email = request.form['email']
+        user.bio = request.form.get('bio', '')
+
+        # Handle profile picture upload
+        if 'profile_pic' in request.files:
+            file = request.files['profile_pic']
+            if file and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                file.save(filepath)
+
+                # Optionally remove old profile pic
+                if user.profile_pic and os.path.exists(os.path.join(app.config['UPLOAD_FOLDER'], user.profile_pic)):
+                    os.remove(os.path.join(app.config['UPLOAD_FOLDER'], user.profile_pic))
+
+                user.profile_pic = filename
+
+        db.session.commit()
+        flash('Profile updated successfully!', 'success')
+        return redirect(url_for('edit_profile'))
+
+    # === Replicate logic from profile() ===
+    members = Member.query.filter_by(user_id=current_user.id).all()
+    selected_member_id = request.args.get('member_id')
+
+    selected_member = None
+    if selected_member_id:
+        selected_member = Member.query.filter_by(id=selected_member_id, user_id=current_user.id).first()
+    elif members:
+        selected_member = members[0]
+
+    if selected_member:
+        selected_member.cuisines = json.loads(selected_member.cuisines or "[]")
+        selected_member.allergies = json.loads(selected_member.allergies or "[]")
+        selected_member.dietary_restrictions = json.loads(selected_member.dietary_restrictions or "[]")
+
+    form = MemberForm()
+
+    return render_template(
+        "profile.html",
+        user=user,
+        members=members,
+        selected_member=selected_member,
+        form=form 
+    )
+
 @app.route('/add_member', methods=['GET', 'POST'])
 @login_required
 def add_member():
     form = MemberForm()
-    if request.method == 'POST':
-        print("POST received")
-        print("Form valid:", form.validate_on_submit())
-        print("Errors:", form.errors)
 
+    # Case 1: Diet calculator POST
+    if request.method == 'POST' and request.form.get('save_to_profile') == 'true':
+        member_id = request.form.get('member_id')
+        if member_id:
+            member = Member.query.filter_by(id=member_id, user_id=current_user.id).first()
+            if member:
+                # Only update nutrition fields if provided
+                member.daily_calories = request.form.get('daily_calories') or member.daily_calories
+                member.protein_grams = request.form.get('protein_grams') or member.protein_grams
+                member.fat_grams = request.form.get('fat_grams') or member.fat_grams
+                member.carbs_grams = request.form.get('carbs_grams') or member.carbs_grams
+
+                db.session.commit()
+                flash('Member nutritional values updated.')
+            else:
+                flash('Member not found.')
+        else:
+            flash('No member selected.')
+        return redirect(url_for('profile'))
+
+    # Case 2: Adding new member from modal
     if form.validate_on_submit():
+        if not form.name.data:
+            print(form.errors)
+            flash("Name is required.")
+            return redirect(url_for('profile'))
+
         member = Member(
             user_id=current_user.id,
             name=form.name.data,
-            daily_calories=form.daily_calories.data,
-            protein_grams=form.protein_grams.data,
-            fat_grams=form.fat_grams.data,
-            carbs_grams=form.carbs_grams.data,
-            cuisines=json.dumps(form.cuisines.data),
-            allergies=json.dumps(form.allergies.data),
-            dietary_restrictions=json.dumps(form.dietary_restrictions.data)
+            daily_calories = float(form.daily_calories.data) if form.daily_calories.data else None,
+            protein_grams= float(form.protein_grams.data) if form.protein_grams.data else None,
+            fat_grams= float(form.fat_grams.data) if form.fat_grams.data else None,
+            carbs_grams= float(form.carbs_grams.data) if form.carbs_grams.data else None,
+            cuisines=json.dumps(request.form.getlist('cuisines')) if request.form.getlist('cuisines') else None,
+            allergies=json.dumps(request.form.getlist('allergies')) if request.form.getlist('allergies') else None,
+            dietary_restrictions=json.dumps(request.form.getlist('dietary_restrictions')) if request.form.getlist('dietary_restrictions') else None
         )
         db.session.add(member)
         db.session.commit()
-
         flash("Member added!")
-        print("Members now:", Member.query.filter_by(user_id=current_user.id).all())
         return redirect(url_for('profile'))
 
-    return render_template('add_member.html', form=form)
+    flash("Failed to add member")
+    return redirect(url_for('profile'))  # fallback
+
+from flask import current_app
 
 @app.route('/change_password', methods=['POST'])
 @login_required
@@ -178,7 +258,15 @@ def change_password():
         return redirect(url_for('profile'))
 
     current_user.password = generate_password_hash(new_password)
+
+    # Debugging
+    print("Dirty before commit:", db.session.dirty)
+
+    with db.session.no_autoflush:
+        current_user.password = generate_password_hash(new_password)
+
     db.session.commit()
+
     flash("Password updated successfully!", "success")
     return redirect(url_for('profile'))
 
@@ -405,9 +493,10 @@ RECIPES_CSV_PATH = 'datasets/recipes_with_images_and_nutrients.csv'
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 IMAGE_FOLDER_PATH = os.path.join(BASE_DIR, 'Food Images')
 
+df = pd.read_csv(RECIPES_CSV_PATH)
+
 # Load CSV into DataFrame using pandas
 def load_recipes():
-    df = pd.read_csv(RECIPES_CSV_PATH)
     recipes = []
     for index, row in df.iterrows():
         image_filename = row['Image_Name'].strip() + '.jpg'
@@ -481,11 +570,11 @@ def load_recipes():
 
         # Modify your recipe dict
         recipe = {
-            "name": row['Title'],
+            "name": row['Recipe Name'],
             "calories": row['Calories'],
             "macro": parse_nutrients(row['Macro_Nutrients']),
             "micro": parse_nutrients(row['Micro_Nutrients']),
-            "ingredients": [ing.strip().replace('\n', ' ') for ing in row['Cleaned_Ingredients'].split(',')],
+            "ingredients": [ing.strip().replace('\n', ' ') for ing in row['Ingredients'].split(',')],
             "instructions": split_instructions(row['Instructions']),
             "image": image
         }
@@ -911,9 +1000,9 @@ pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tessera
 
 # lookup opencv barcode recognition
 
-UPLOAD_FOLDER = 'static/uploads/ocr'
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+UPLOAD_FOLDER_OCR = 'static/uploads/ocr'
+os.makedirs(UPLOAD_FOLDER_OCR, exist_ok=True)
+app.config['UPLOAD_FOLDER_OCR'] = UPLOAD_FOLDER_OCR
 
 def preprocess_image_for_barcode(img):
     # Convert to grayscale
@@ -982,7 +1071,7 @@ def scan_barcode():
     if file.filename == '':
         return jsonify({'error': 'No file selected'}), 400
 
-    filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+    filepath = os.path.join(app.config['UPLOAD_FOLDER_OCR'], file.filename)
     file.save(filepath)
 
     try:
