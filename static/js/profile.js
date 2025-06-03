@@ -68,4 +68,17 @@ function applyDietValues() {
     }, 300);
 }
 
+document.addEventListener('DOMContentLoaded', function () {
+    const editButtons = document.querySelectorAll('.edit-member-btn');
+    const editForm = document.getElementById('editMemberForm');
 
+    editButtons.forEach(button => {
+        button.addEventListener('click', function () {
+            const member = JSON.parse(this.getAttribute('data-member'));
+            document.getElementById('editMemberId').value = member.id;
+            document.getElementById('editMemberName').value = member.name;
+            // set action for form
+            editForm.action = `/edit_member/${member.id}`;
+        });
+    });
+});

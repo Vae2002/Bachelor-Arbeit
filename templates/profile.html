@@ -50,11 +50,25 @@
                     </button>
 
                     <ul class="dropdown-menu w-100" aria-labelledby="memberDropdown">
-                        {% for member in members %}
-                        <li>
-                            <a class="dropdown-item member-option" href="{{ url_for('profile', member_id=member.id) }}">{{ member.name }}</a>
-                        </li>
+                        {% for member, member_data in member_pairs %}
+                            <li>
+                                <div class="dropdown-item d-flex justify-content-between align-items-center">
+                                    <a href="{{ url_for('profile', member_id=member.id) }}" class="flex-grow-1">{{ member.name }}</a>
+                                    <div>
+                                        <button class="btn btn-sm btn-outline-primary me-1 edit-member-btn"
+                                                data-member='{{ member_data|tojson }}'
+                                                data-bs-toggle="modal" data-bs-target="#editMemberModal">
+                                            Edit
+                                        </button>
+                                        <form action="{{ url_for('delete_member', member_id=member.id) }}" method="POST" style="display:inline;">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger"
+                                                    onclick="return confirm('Are you sure you want to delete this member?')">Delete</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </li>
                         {% endfor %}
+
                         <li><hr class="dropdown-divider"></li>
                         <li>
                             <button class="dropdown-item text-success" type="button" data-bs-toggle="modal" data-bs-target="#addMemberModal">
@@ -193,6 +207,31 @@
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <!-- Edit Member Modal -->
+            <div class="modal fade" id="editMemberModal" tabindex="-1" aria-labelledby="editMemberModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <form method="POST" id="editMemberForm" action="">
+                <div class="modal-content">
+                    <div class="modal-header">
+                    <h5 class="modal-title" id="editMemberModalLabel">Edit Member</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                    <input type="hidden" name="member_id" id="editMemberId">
+                    <div class="mb-3">
+                        <label for="editMemberName" class="form-label">Name</label>
+                        <input type="text" class="form-control" name="member_name" id="editMemberName">
+                    </div>
+                    <!-- Add other fields as needed -->
+                    </div>
+                    <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </div>
+                </form>
+            </div>
             </div>
 
             <!-- Change Password Section -->

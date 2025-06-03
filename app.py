@@ -91,6 +91,19 @@ def logout():
     return redirect(url_for('login'))
 
 # =================== PROFILE PAGE ===================
+def member_to_dict(member):
+    return {
+        'id': member.id,
+        'name': member.name,
+        'daily_calories': member.daily_calories,
+        'protein_grams': member.protein_grams,
+        'fat_grams': member.fat_grams,
+        'carbs_grams': member.carbs_grams,
+        # 'cuisines': json.dumps(member.cuisines) if member.cuisines else None,
+        # 'allergies': json.dumps(member.allergies) if member.allergies else None,
+        # 'dietary_restrictions': json.dumps(member.dietary_restrictions) if member.dietary_restrictions else None
+    }
+
 @app.route('/profile', methods=['GET', 'POST'])
 @login_required
 def profile():
@@ -103,35 +116,44 @@ def profile():
     elif members:
         selected_member = members[0]
 
-    # Parse JSON fields if present
+    # Parse JSON fields
     if selected_member:
         selected_member.cuisines = json.loads(selected_member.cuisines or "[]")
         selected_member.allergies = json.loads(selected_member.allergies or "[]")
         selected_member.dietary_restrictions = json.loads(selected_member.dietary_restrictions or "[]")
 
-    # Handle updates
-    if request.method == "POST" and selected_member:
-        selected_member.name = request.form.get("member_name")
-        selected_member.daily_calories = request.form.get("daily_calories")
-        selected_member.protein_grams = request.form.get("protein_grams")
-        selected_member.fat_grams = request.form.get("fat_grams")
-        selected_member.carbs_grams = request.form.get("carbs_grams")
-        selected_member.cuisines = str(request.form.getlist("cuisines[]"))
-        selected_member.allergies = str(request.form.getlist("allergies[]"))
-        selected_member.dietary_restrictions = str(request.form.getlist("dietary_restrictions[]"))
-        db.session.commit()
-        flash("Member updated!", "success")
-        return redirect(url_for('profile', member_id=selected_member.id))
+    member_pairs = list(zip(members, [member_to_dict(m) for m in members]))
 
     form = MemberForm()
 
     return render_template(
         "profile.html",
         user=current_user,
-        members=members,
+        members=members,  # Optional, if you still need them separately
+        member_pairs=member_pairs,  # Used for dropdown rendering
         selected_member=selected_member,
-        form=form 
+        form=form
     )
+
+
+@app.route('/edit_member/<int:member_id>', methods=['POST'])
+@login_required
+def edit_member(member_id):
+    member = Member.query.filter_by(id=member_id, user_id=current_user.id).first_or_404()
+    member.name = request.form.get("member_name")
+    # Add other field updates here
+    db.session.commit()
+    flash("Member updated!", "success")
+    return redirect(url_for('profile', member_id=member.id))
+
+@app.route('/delete_member/<int:member_id>', methods=['POST'])
+@login_required
+def delete_member(member_id):
+    member = Member.query.filter_by(id=member_id, user_id=current_user.id).first_or_404()
+    db.session.delete(member)
+    db.session.commit()
+    flash("Member deleted.", "success")
+    return redirect(url_for('profile'))
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
