@@ -135,26 +135,6 @@ def profile():
         form=form
     )
 
-
-@app.route('/edit_member/<int:member_id>', methods=['POST'])
-@login_required
-def edit_member(member_id):
-    member = Member.query.filter_by(id=member_id, user_id=current_user.id).first_or_404()
-    member.name = request.form.get("member_name")
-    # Add other field updates here
-    db.session.commit()
-    flash("Member updated!", "success")
-    return redirect(url_for('profile', member_id=member.id))
-
-@app.route('/delete_member/<int:member_id>', methods=['POST'])
-@login_required
-def delete_member(member_id):
-    member = Member.query.filter_by(id=member_id, user_id=current_user.id).first_or_404()
-    db.session.delete(member)
-    db.session.commit()
-    flash("Member deleted.", "success")
-    return redirect(url_for('profile'))
-
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
@@ -262,7 +242,43 @@ def add_member():
     flash("Failed to add member")
     return redirect(url_for('profile'))  # fallback
 
-from flask import current_app
+@app.route('/edit_member/<int:member_id>', methods=['POST'])
+@login_required
+def edit_member(member_id):
+    member = Member.query.filter_by(id=member_id, user_id=current_user.id).first_or_404()
+
+    name = request.form.get("member_name")
+    if name:
+        member.name = name  # Only update if non-empty
+
+    # Nutrition fields (optional, only update if provided)
+    member.daily_calories = float(request.form.get('daily_calories')) if request.form.get('daily_calories') else member.daily_calories
+    member.protein_grams = float(request.form.get('protein_grams')) if request.form.get('protein_grams') else member.protein_grams
+    member.fat_grams = float(request.form.get('fat_grams')) if request.form.get('fat_grams') else member.fat_grams
+    member.carbs_grams = float(request.form.get('carbs_grams')) if request.form.get('carbs_grams') else member.carbs_grams
+
+    # List-type fields (JSON-encoded)
+    cuisines = request.form.getlist('cuisines')
+    member.cuisines = json.dumps(cuisines) if cuisines else member.cuisines
+
+    allergies = request.form.getlist('allergies')
+    member.allergies = json.dumps(allergies) if allergies else member.allergies
+
+    restrictions = request.form.getlist('dietary_restrictions')
+    member.dietary_restrictions = json.dumps(restrictions) if restrictions else member.dietary_restrictions
+
+    db.session.commit()
+    flash("Member updated!", "success")
+    return redirect(url_for('profile', member_id=member.id))
+
+@app.route('/delete_member/<int:member_id>', methods=['POST'])
+@login_required
+def delete_member(member_id):
+    member = Member.query.filter_by(id=member_id, user_id=current_user.id).first_or_404()
+    db.session.delete(member)
+    db.session.commit()
+    flash("Member deleted.", "success")
+    return redirect(url_for('profile'))
 
 @app.route('/change_password', methods=['POST'])
 @login_required

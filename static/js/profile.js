@@ -44,13 +44,11 @@ document.getElementById('diet-form').addEventListener('submit', function (e) {
 });
 
 function applyDietValues() {
-    // Get values from calculator modal
     const calories = document.getElementById('calcCalories').innerText;
     const protein = document.getElementById('calcProtein').innerText;
     const fat = document.getElementById('calcFat').innerText;
     const carbs = document.getElementById('calcCarbs').innerText;
 
-    // Set values in addMemberModal form (to <input> elements)
     document.getElementById('dailyCalories').value = calories;
     document.getElementById('proteinGrams').value = protein;
     document.getElementById('fatGrams').value = fat;
@@ -60,25 +58,67 @@ function applyDietValues() {
     const dietModal = bootstrap.Modal.getInstance(document.getElementById('dietCalculatorModal'));
     dietModal.hide();
 
-    // Show Add Member modal after a short delay
-    setTimeout(() => {
-        const addMemberModalEl = document.getElementById('addMemberModal');
-        const addMemberModal = new bootstrap.Modal(addMemberModalEl);
-        addMemberModal.show();
-    }, 300);
+    // Only show memberModal if it's not already open
+    const memberModalEl = document.getElementById('memberModal');
+    const isMemberModalVisible = memberModalEl.classList.contains('show');
+
+    if (!isMemberModalVisible) {
+        setTimeout(() => {
+            const memberModal = new bootstrap.Modal(memberModalEl);
+            memberModal.show();
+        }, 300);
+    }
 }
 
 document.addEventListener('DOMContentLoaded', function () {
     const editButtons = document.querySelectorAll('.edit-member-btn');
-    const editForm = document.getElementById('editMemberForm');
+    const addButton = document.querySelector('.add-member-btn');
+    const form = document.getElementById('memberForm');
+    const modalTitle = document.getElementById('memberModalLabel');
 
+    function resetForm() {
+        form.reset(); 
+
+        document.querySelectorAll('.form-check-input').forEach(input => input.checked = false);
+    }
+
+    function checkBoxesFromArray(className, values) {
+        document.querySelectorAll(`.${className}`).forEach(input => {
+            input.checked = values.includes(input.value);
+        });
+    }
+
+    // Open Edit
     editButtons.forEach(button => {
         button.addEventListener('click', function () {
             const member = JSON.parse(this.getAttribute('data-member'));
-            document.getElementById('editMemberId').value = member.id;
-            document.getElementById('editMemberName').value = member.name;
-            // set action for form
-            editForm.action = `/edit_member/${member.id}`;
+            resetForm();
+
+            modalTitle.textContent = `Edit Member`;
+            form.action = `/edit_member/${member.id}`;
+
+            document.getElementById('memberName').value = member.name || "";
+            document.getElementById('dailyCalories').value = member.daily_calories || "";
+            document.getElementById('proteinGrams').value = member.protein_grams || "";
+            document.getElementById('fatGrams').value = member.fat_grams || "";
+            document.getElementById('carbsGrams').value = member.carbs_grams || "";
+
+            checkBoxesFromArray('cuisine-checkbox', member.cuisines || []);
+            checkBoxesFromArray('allergy-checkbox', member.allergies || []);
+            checkBoxesFromArray('restriction-checkbox', member.dietary_restrictions || []);
+
+            const modal = new bootstrap.Modal(document.getElementById('memberModal'));
+            modal.show();
         });
+    });
+
+    // Open Add
+    addButton.addEventListener('click', function () {
+        resetForm();
+        modalTitle.textContent = `Add New Member`;
+        form.action = `/add_member`;
+
+        const modal = new bootstrap.Modal(document.getElementById('memberModal'));
+        modal.show();
     });
 });

@@ -56,8 +56,8 @@
                                     <a href="{{ url_for('profile', member_id=member.id) }}" class="flex-grow-1">{{ member.name }}</a>
                                     <div>
                                         <button class="btn btn-sm btn-outline-primary me-1 edit-member-btn"
-                                                data-member='{{ member_data|tojson }}'
-                                                data-bs-toggle="modal" data-bs-target="#editMemberModal">
+                                                type="button" data-member='{{ member_data|tojson }}'
+                                                data-bs-toggle="modal" data-bs-target="#MemberModal">
                                             Edit
                                         </button>
                                         <form action="{{ url_for('delete_member', member_id=member.id) }}" method="POST" style="display:inline;">
@@ -71,9 +71,10 @@
 
                         <li><hr class="dropdown-divider"></li>
                         <li>
-                            <button class="dropdown-item text-success" type="button" data-bs-toggle="modal" data-bs-target="#addMemberModal">
+                            <button class="dropdown-item text-success add-member-btn" type="button" data-bs-toggle="modal" data-bs-target="#memberModal">
                                 + Add Member
                             </button>
+
                         </li>
                     </ul>
                 </div>
@@ -92,29 +93,30 @@
                 {% endif %}
             </form>   
 
-            <!-- Add Member Modal -->
-            <div class="modal fade" id="addMemberModal" tabindex="-1" aria-labelledby="addMemberModalLabel" aria-hidden="true">
+            <!-- Unified Add/Edit Member Modal -->
+            <div class="modal fade" id="memberModal" tabindex="-1" aria-labelledby="memberModalLabel" aria-hidden="true">
                 <div class="modal-dialog modal-dialog-scrollable">
                     <div class="modal-content">
-                        <form method="POST" action="{{ url_for('add_member') }}">
+                        <form method="POST" id="memberForm">
                             {{ form.hidden_tag() }}
                             <div class="modal-header">
-                                <h5 class="modal-title" id="addMemberModalLabel">Add New Member</h5>
+                                <h5 class="modal-title" id="memberModalLabel">Add New Member</h5>
                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                             </div>
 
                             <div class="modal-body" style="max-height: 60vh; overflow-y: auto;">
                                 <div class="mb-3">
-                                    {{ form.name.label }} {{ form.name(class="form-control") }}
+                                    {{ form.name.label }} 
+                                    {{ form.name(class="form-control", id="memberName") }}
                                 </div>
-                                <!-- Collapsible Trigger -->
+
+                                <!-- Nutrition Toggle -->
                                 <div class="mb-3">
                                     <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#nutritionFields" aria-expanded="false" aria-controls="nutritionFields">
                                         Show Daily Intake
                                     </button>
                                 </div>
 
-                                <!-- Collapsible Nutrition Fields -->
                                 <div class="collapse" id="nutritionFields">
                                     <div class="card card-body">
                                         <div class="mb-3">
@@ -142,39 +144,42 @@
                                     </div>
                                 </div>
 
+                                <!-- Cuisines -->
                                 <div class="mb-3">
                                     <label class="form-label">Cuisines:</label>
                                     <div class="form-check">
                                         {% for cuisine in form.cuisines.choices %}
-                                            <input class="form-check-input" type="checkbox" name="cuisines" id="cuisine_{{ loop.index }}" value="{{ cuisine[0] }}">
+                                            <input class="form-check-input cuisine-checkbox" type="checkbox" name="cuisines" id="cuisine_{{ loop.index }}" value="{{ cuisine[0] }}">
                                             <label class="form-check-label" for="cuisine_{{ loop.index }}">{{ cuisine[1] }}</label><br>
                                         {% endfor %}
                                     </div>
                                 </div>
 
+                                <!-- Allergies -->
                                 <div class="mb-3">
                                     <label class="form-label">Allergies:</label>
                                     <div class="form-check">
                                         {% for allergy in form.allergies.choices %}
-                                            <input class="form-check-input" type="checkbox" name="allergies" id="allergy_{{ loop.index }}" value="{{ allergy[0] }}">
+                                            <input class="form-check-input allergy-checkbox" type="checkbox" name="allergies" id="allergy_{{ loop.index }}" value="{{ allergy[0] }}">
                                             <label class="form-check-label" for="allergy_{{ loop.index }}">{{ allergy[1] }}</label><br>
                                         {% endfor %}
                                     </div>
                                 </div>
 
+                                <!-- Restrictions -->
                                 <div class="mb-3">
                                     <label class="form-label">Dietary Restrictions:</label>
                                     <div class="form-check">
                                         {% for restriction in form.dietary_restrictions.choices %}
-                                            <input class="form-check-input" type="checkbox" name="dietary_restrictions" id="restriction_{{ loop.index }}" value="{{ restriction[0] }}">
+                                            <input class="form-check-input restriction-checkbox" type="checkbox" name="dietary_restrictions" id="restriction_{{ loop.index }}" value="{{ restriction[0] }}">
                                             <label class="form-check-label" for="restriction_{{ loop.index }}">{{ restriction[1] }}</label><br>
                                         {% endfor %}
                                     </div>
                                 </div>
-
                             </div>
+
                             <div class="modal-footer">
-                                <button type="submit" class="btn btn-success">Add Member</button>
+                                <button type="submit" class="btn btn-success" id="memberSubmitBtn">Save Member</button>
                             </div>
                         </form>
                     </div>
@@ -207,31 +212,6 @@
                         </div>
                     </div>
                 </div>
-            </div>
-
-            <!-- Edit Member Modal -->
-            <div class="modal fade" id="editMemberModal" tabindex="-1" aria-labelledby="editMemberModalLabel" aria-hidden="true">
-            <div class="modal-dialog">
-                <form method="POST" id="editMemberForm" action="">
-                <div class="modal-content">
-                    <div class="modal-header">
-                    <h5 class="modal-title" id="editMemberModalLabel">Edit Member</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                    <input type="hidden" name="member_id" id="editMemberId">
-                    <div class="mb-3">
-                        <label for="editMemberName" class="form-label">Name</label>
-                        <input type="text" class="form-control" name="member_name" id="editMemberName">
-                    </div>
-                    <!-- Add other fields as needed -->
-                    </div>
-                    <div class="modal-footer">
-                    <button type="submit" class="btn btn-primary">Save Changes</button>
-                    </div>
-                </div>
-                </form>
-            </div>
             </div>
 
             <!-- Change Password Section -->
