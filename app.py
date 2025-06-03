@@ -396,8 +396,6 @@ def diet_calculator():
         print(f"Fat (grams): {current_user.fat_grams}")
         print(f"Carbs (grams): {current_user.carbs_grams}")
 
-
-
         try:
             print("Attempting to commit changes to the database...")  
 

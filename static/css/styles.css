@@ -29,6 +29,13 @@ body {
     font-size: 1.1rem;
 }
 
+.navbar .navbar-profile-pic {
+  width: 45px;
+  height: 45px;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
 .dropbtn {
 background-color: #04AA6D;
 color: white;
@@ -74,3 +81,47 @@ min-width: 350px;
 .dropdown:hover .dropdown-content {display: block;}
 
 .dropdown:hover .dropbtn {background-color: #3e8e41;}
+
+img.rounded-circle {
+  width: 100px;   /* or any fixed size */
+  height: 100px;  /* height same as width */
+  object-fit: cover; /* ensures the image fills the box and is cropped */
+  border-radius: 50%; /* makes it circular */
+  display: block;
+  margin: 0 auto;
+}
+
+.profile-pic-wrapper {
+  position: relative;
+  cursor: pointer;
+  display: inline-block;
+}
+
+.profile-pic-wrapper img {
+  border-radius: 50%;
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  display: block;
+}
+
+.profile-pic-wrapper .edit-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(0, 0, 0, 0.5);
+  border-radius: 50%;
+  padding: 8px;
+  display: none;
+  transition: background-color 0.3s ease;
+}
+
+.profile-pic-wrapper:hover .edit-icon {
+  display: block;
+}
+
+.profile-pic-wrapper .edit-icon svg {
+  pointer-events: none;
+  display: block;
+}

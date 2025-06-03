@@ -11,52 +11,59 @@
 
     <!-- Navigation Bar -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-        <div class="container">
+        <div class="container d-flex align-items-center justify-content-between">
             <a class="navbar-brand" href="/">Kitchen App</a>
 
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
-                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
+            <div class="d-flex align-items-center">
+                <!-- Burger Button -->
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                    aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Profile Picture for Mobile (beside burger) -->
+                <a class="nav-link p-0 ms-2 d-lg-none" href="{{ url_for('profile') }}">
+                    {% if current_user.profile_pic %}
+                    <img src="{{ url_for('static', filename='uploads/' + current_user.profile_pic) }}" class="rounded-circle navbar-profile-pic" width="32" height="32">
+                    {% else %}
+                    <div class="rounded-circle bg-white text-primary d-flex justify-content-center align-items-center" style="width: 32px; height: 32px;">
+                        <span>{{ current_user.username[0].upper() }}</span>
+                    </div>
+                    {% endif %}
+                </a>
+            </div>
 
             <!-- Collapsible nav content -->
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('meal_planner') }}">Meal Planner</a>
-                    </li>
-                    <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('recipe_lookup') }}">Recipe Lookup</a>
-                    </li>
-                    <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('diet_calculator') }}">Diet Calculator</a>
-                    </li>
-                    <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('pantry') }}">Pantry</a>
-                    </li>
-                    <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('grocery') }}">Grocery List</a>
+                <ul class="navbar-nav ms-auto align-items-center">
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('meal_planner') }}">Meal Planner</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('recipe_lookup') }}">Recipe Lookup</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('diet_calculator') }}">Diet Calculator</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('pantry') }}">Pantry</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('grocery') }}">Grocery List</a></li>
+
+                    <!-- Profile Picture for Desktop -->
+                    <li class="nav-item d-none d-lg-block">
+                        <a class="nav-link p-0 me-3" href="{{ url_for('profile') }}">
+                            {% if current_user.profile_pic %}
+                            <img src="{{ url_for('static', filename='uploads/' + current_user.profile_pic) }}" class="rounded-circle navbar-profile-pic" width="32" height="32">
+                            {% else %}
+                            <div class="rounded-circle bg-white text-primary d-flex justify-content-center align-items-center" style="width: 32px; height: 32px;">
+                                <span>{{ current_user.username[0].upper() }}</span>
+                            </div>
+                            {% endif %}
+                        </a>
                     </li>
 
                     <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('profile') }}">
-                        {% if current_user.profile_pic %}
-                        <img src="{{ url_for('static', filename='uploads/' + current_user.profile_pic) }}" class="rounded-circle" width="40" height="40">
-                        {% else %}
-                        <div class="rounded-circle bg-primary text-white d-flex justify-content-center align-items-center" style="width: 40px; height: 40px;">
-                            <span>{{ current_user.username[0].upper() }}</span>
-                        </div>
-                        {% endif %}
-                    </a>
-                    </li>
-
-                    <li class="nav-item">
-                    <a class="nav-link btn btn-danger text-white px-3 py-1" href="{{ url_for('logout') }}">Logout</a>
+                        <a class="nav-link btn btn-danger text-white px-3 py-1" href="{{ url_for('logout') }}">Logout</a>
                     </li>
                 </ul>
             </div>
         </div>
     </nav>
+
+
 
     <!-- Flash Messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
