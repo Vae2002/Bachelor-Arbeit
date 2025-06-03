@@ -312,13 +312,6 @@ def diet_calculator():
     bmr = tdee = protein_grams = fat_grams = carbs_grams = None 
 
     if request.method == 'POST':
-        
-        # result = calculate_diet(request.form)
-        # bmr = result['bmr']
-        # tdee = result['tdee']
-        # protein_grams = result['protein_grams']
-        # fat_grams = result['fat_grams']
-        # carbs_grams = result['carbs_grams']
 
         member_id = request.form.get('member_id')
         if member_id:
