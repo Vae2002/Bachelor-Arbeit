@@ -129,8 +129,8 @@ def profile():
     return render_template(
         "profile.html",
         user=current_user,
-        members=members,  # Optional, if you still need them separately
-        member_pairs=member_pairs,  # Used for dropdown rendering
+        members=members, 
+        member_pairs=member_pairs, 
         selected_member=selected_member,
         form=form
     )
@@ -164,7 +164,7 @@ def edit_profile():
 
         db.session.commit()
         flash('Profile updated successfully!', 'success')
-        return redirect(url_for('edit_profile'))
+        return redirect(url_for('profile'))
 
     # === Replicate logic from profile() ===
     members = Member.query.filter_by(user_id=current_user.id).all()
@@ -1028,6 +1028,20 @@ def meal_planner():
         end_of_week = start_of_week + timedelta(days=6)
         week_param = f"{start_of_week.isocalendar()[0]}-W{start_of_week.isocalendar()[1]}"
 
+    # Member selection logic
+    members = Member.query.filter_by(user_id=current_user.id).all()
+    selected_member_id = request.args.get('member_id', type=int)
+
+    selected_member = None
+    if selected_member_id:
+        selected_member = Member.query.filter_by(id=selected_member_id, user_id=current_user.id).first()
+    elif members:
+        selected_member = members[0]
+
+    # Dictionary representation of each member for display
+    member_pairs = [(m, {'id': m.id, 'name': m.name}) for m in members]
+
+    # Meal plans
     meals = MealPlan.query.filter(
         MealPlan.user_id == current_user.id,
         MealPlan.date >= start_of_week,
@@ -1046,16 +1060,26 @@ def meal_planner():
             'macro': meal.recipe_macro,
             'micro': meal.recipe_micro
         }
+        meal_data[key_by_date] = meal_data[key_by_day]
 
-        meal_data[key_by_date] = meal_data[key_by_day]  
-
+    form = MemberForm(obj=selected_member) if selected_member else MemberForm()
 
     return render_template(
         "meal_planner.html",
         meal_data=meal_data,
         selected_week=week_param,
         start_of_week=start_of_week,
-        timedelta=timedelta 
+        timedelta=timedelta,
+        members=members,
+        member_pairs=member_pairs,
+        selected_member=selected_member,
+        diet_info_member={
+            'daily_calories': selected_member.daily_calories if selected_member else None,
+            'protein_grams': selected_member.protein_grams if selected_member else None,
+            'fat_grams': selected_member.fat_grams if selected_member else None,
+            'carbs_grams': selected_member.carbs_grams if selected_member else None,
+        },
+        form=form
     )
 
 # =================== PANTRY ORGANIZATION ===================

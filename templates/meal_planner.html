@@ -20,21 +20,47 @@
         <!-- Diet Info -->
         <div class="row justify-content-center">
             <h3 class="text-center mb-3">Diet Information</h3>
+            <!-- <button class="btn btn-success dropdown-toggle w-100" type="button" id="memberDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                {{ selected_member.name if selected_member else "Select Member" }}
+            </button>
+
+            <ul class="dropdown-menu w-100" aria-labelledby="memberDropdown">
+                {% for member, member_data in member_pairs %}
+                    <li>
+                        <div class="dropdown-item d-flex justify-content-between align-items-center">
+                            <a href="{{ url_for('meal_planner') }}?member_id={{ member.id }}&week={{ selected_week }}">
+                                {{ member.name }}
+                            </a>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul> -->
+            
+            <select onchange="changeMember(this)" class="form-select">
+                {% for member, member_data in member_pairs %}
+                    <option value="{{ member.id }}" {% if selected_member and member.id == selected_member.id %}selected{% endif %}>
+                        {{ member.name }}
+                    </option>
+                {% endfor %}
+            </select>
+
             {% set diet_info = [
-                ('Daily Calories', current_user.daily_calories, ''),
-                ('Protein', current_user.protein_grams, 'g'),
-                ('Fats', current_user.fat_grams, 'g'),
-                ('Carbs', current_user.carbs_grams, 'g')
+                ('Daily Calories', diet_info_member.daily_calories if diet_info_member else None, ''),
+                ('Protein', diet_info_member.protein_grams if diet_info_member else None, 'g'),
+                ('Fats', diet_info_member.fat_grams if diet_info_member else None, 'g'),
+                ('Carbs', diet_info_member.carbs_grams if diet_info_member else None, 'g')
             ] %}
+
             {% for label, value, unit in diet_info %}
-            <div class="col-md-3 mb-3">
-                <div class="card text-center shadow-sm">
-                    <div class="card-body">
-                        <h6 class="card-title"><strong>{{ label }}</strong></h6>
-                        <p class="card-text fs-5">{{ value or "—" }} {{ unit }}</p>
+                <div class="col-md-3 mb-3">
+                    <br>
+                    <div class="card text-center shadow-sm">
+                        <div class="card-body">
+                            <h6 class="card-title"><strong>{{ label }}</strong></h6>
+                            <p class="card-text fs-5">{{ value or "—" }} {{ unit }}</p>
+                        </div>
                     </div>
                 </div>
-            </div>
             {% endfor %}
         </div>
 
@@ -115,6 +141,11 @@
 
 <!-- JS -->
 <script>
+    function changeMember(select) {
+        const memberId = select.value;
+        window.location.href = `{{ url_for('meal_planner') }}?member_id=${memberId}`;
+    }
+
     function formatDate(date) {
         const options = { weekday: 'short', year: 'numeric', month: 'short', day: '2-digit' };
         return date.toLocaleDateString('en-US', options);
