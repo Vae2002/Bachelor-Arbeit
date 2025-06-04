@@ -59,7 +59,12 @@
                         {% for member, member_data in member_pairs %}
                             <li>
                                 <div class="dropdown-item d-flex justify-content-between align-items-center">
-                                    <a href="{{ url_for('profile', member_id=member.id) }}" class="flex-grow-1">{{ member.name }}</a>
+                                    <a href="{{ url_for('profile', member_id=member.id) }}"
+                                        class="flex-grow-1"
+                                        onclick="localStorage.setItem('selectedMemberId', '{{ member.id }}')">
+                                        {{ member.name }}
+                                    </a>
+
                                     <div>
                                         <button class="btn btn-sm btn-outline-primary me-1 edit-member-btn"
                                                 type="button" data-member='{{ member_data|tojson }}'

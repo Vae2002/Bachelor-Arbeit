@@ -108,5 +108,21 @@
         crossorigin="anonymous">
     </script>
 
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const storedMemberId = localStorage.getItem("selectedMemberId");
+            const urlParams = new URLSearchParams(window.location.search);
+            const currentMemberId = urlParams.get("member_id");
+
+            if (storedMemberId && !currentMemberId) {
+                // Redirect to same path but with member_id
+                let newUrl = new URL(window.location.href);
+                newUrl.searchParams.set("member_id", storedMemberId);
+                window.location.replace(newUrl.toString());
+            }
+        });
+    </script>
+
+
 </body>
 </html>

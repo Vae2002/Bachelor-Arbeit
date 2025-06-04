@@ -1,7 +1,7 @@
-function changeMember(select) {
-    const memberId = select.value;
-    window.location.href = `{{ url_for('profile') }}?member_id=${memberId}`;
-}
+// function changeMember(select) {
+//     const memberId = select.value;
+//     window.location.href = `{{ url_for('profile') }}?member_id=${memberId}`;
+// }
 
 document.addEventListener('DOMContentLoaded', function () {
     const dropdownItems = document.querySelectorAll('.dropdown-menu .dropdown-item');
