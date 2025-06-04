@@ -20,30 +20,6 @@
         <!-- Diet Info -->
         <div class="row justify-content-center">
             <h3 class="text-center mb-3">Diet Information</h3>
-            <!-- <button class="btn btn-success dropdown-toggle w-100" type="button" id="memberDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                {{ selected_member.name if selected_member else "Select Member" }}
-            </button>
-
-            <ul class="dropdown-menu w-100" aria-labelledby="memberDropdown">
-                {% for member, member_data in member_pairs %}
-                    <li>
-                        <div class="dropdown-item d-flex justify-content-between align-items-center">
-                            <a href="{{ url_for('meal_planner') }}?member_id={{ member.id }}&week={{ selected_week }}">
-                                {{ member.name }}
-                            </a>
-                        </div>
-                    </li>
-                {% endfor %}
-            </ul> -->
-            
-            <!-- <select onchange="changeMember(this)" class="form-select">
-                {% for member, member_data in member_pairs %}
-                    <option value="{{ member.id }}" {% if selected_member and member.id == selected_member.id %}selected{% endif %}>
-                        {{ member.name }}
-                    </option>
-                {% endfor %}
-            </select> -->
-
             {% set diet_info = [
                 ('Daily Calories', diet_info_member.daily_calories if diet_info_member else None, ''),
                 ('Protein', diet_info_member.protein_grams if diet_info_member else None, 'g'),

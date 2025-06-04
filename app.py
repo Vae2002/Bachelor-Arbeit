@@ -1015,6 +1015,7 @@ def save_to_meal_planner():
     recipe_micro = request.form['recipe_micro']
     meal = request.form['meal']
     date_str = request.form['date']
+    member_id = request.form.get('member_id', type=int) 
 
     try:
         date = datetime.strptime(date_str, "%Y-%m-%d").date()
@@ -1028,10 +1029,13 @@ def save_to_meal_planner():
         existing.recipe_calories = recipe_calories
         existing.recipe_macro = recipe_macro
         existing.recipe_micro = recipe_micro
+        if member_id:
+            existing.member_id = member_id  
         flash(f"{meal.capitalize()} on {date} updated.", "success")
     else:
         new_entry = MealPlan(
             user_id=current_user.id,
+            member_id=member_id,  # <-- link to member
             date=date,
             meal_type=meal,
             recipe_name=recipe_name,
@@ -1043,7 +1047,7 @@ def save_to_meal_planner():
         flash(f"{meal.capitalize()} on {date} added.", "success")
 
     db.session.commit()
-    return redirect(url_for('meal_planner'))
+    return redirect(url_for('meal_planner', member_id=member_id))
 
 
 # =================== MEAL PLANNER ===================
@@ -1084,7 +1088,12 @@ def meal_planner():
         MealPlan.user_id == current_user.id,
         MealPlan.date >= start_of_week,
         MealPlan.date <= end_of_week
-    ).all()
+    )
+
+    if selected_member:
+        meals = meals.filter(MealPlan.member_id == selected_member.id)
+
+    meals = meals.all()
 
     meal_data = {}
     for meal in meals:

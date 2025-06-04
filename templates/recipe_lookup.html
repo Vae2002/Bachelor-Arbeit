@@ -241,6 +241,7 @@
                         <div class="collapse" id="save_dish{{ loop.index }}">
                             <div class="card card-body">
                                 <form id="save_form_{{ loop.index }}" action="{{ url_for('save_to_meal_planner') }}" method="POST">
+                                    <input type="hidden" name="member_id" value="{{ selected_member.id }}">
                                     <input type="hidden" name="recipe_name" value="{{ recipe.name }}">
                                     <input type="hidden" name="recipe_calories" value="{{ recipe.calories }}">
                                     <input type="hidden" name="recipe_macro" value="{{ recipe.macro }}">

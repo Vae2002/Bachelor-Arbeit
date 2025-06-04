@@ -14,17 +14,16 @@
         <div class="container d-flex align-items-center justify-content-between">
             <a class="navbar-brand" href="/">Kitchen App</a>
 
-            <form method="get" action="{{ url_for('meal_planner') }}" class="ms-3">
-                <input type="hidden" name="week" value="{{ selected_week }}">
-                <select name="member_id" class="form-select form-select-sm" onchange="this.form.submit()">
+            <div class="ms-3">
+                <input type="hidden" id="selected_week_header" value="{{ selected_week }}">
+                <select class="form-select form-select-sm" onchange="changeMember(this)">
                     {% for m, m_data in member_pairs %}
                         <option value="{{ m_data.id }}" {% if selected_member and m_data.id == selected_member.id %}selected{% endif %}>
                             {{ m_data.name }}
                         </option>
                     {% endfor %}
                 </select>
-            </form>
-
+            </div>
 
             <div class="d-flex align-items-center">
                 <!-- Burger Button -->
@@ -100,6 +99,8 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+
+    <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
 
     <script 
         src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" 
