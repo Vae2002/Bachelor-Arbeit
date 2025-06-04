@@ -91,6 +91,59 @@ def logout():
     return redirect(url_for('login'))
 
 # =================== PROFILE PAGE ===================
+def member_to_dict(member):
+    return {
+        'id': member.id,
+        'name': member.name,
+        'daily_calories': member.daily_calories,
+        'protein_grams': member.protein_grams,
+        'fat_grams': member.fat_grams,
+        'carbs_grams': member.carbs_grams,
+        # 'cuisines': json.dumps(member.cuisines) if member.cuisines else None,
+        # 'allergies': json.dumps(member.allergies) if member.allergies else None,
+        # 'dietary_restrictions': json.dumps(member.dietary_restrictions) if member.dietary_restrictions else None
+    }
+
+def try_json_load(val):
+    try:
+        return ", ".join(json.loads(val)) if val else ""
+    except (json.JSONDecodeError, TypeError):
+        return val or ""
+
+@app.context_processor
+def inject_member_dropdown_data():
+    if current_user.is_authenticated:
+        with db.session.no_autoflush:
+            members = Member.query.filter_by(user_id=current_user.id).all()
+            member_pairs = [(m, {'id': m.id, 'name': m.name}) for m in members]
+            selected_member_id = request.args.get('member_id', type=int)
+            selected_member = None
+
+            if selected_member_id:
+                selected_member = Member.query.filter_by(id=selected_member_id, user_id=current_user.id).first()
+            elif members:
+                selected_member = members[0]
+
+            if selected_member:
+                # Safely decode JSON fields for display
+                selected_member.cuisines = try_json_load(selected_member.cuisines)
+                selected_member.allergies = try_json_load(selected_member.allergies)
+                selected_member.dietary_restrictions = try_json_load(selected_member.dietary_restrictions)
+
+            selected_week = request.args.get("week")
+            if not selected_week:
+                today = datetime.today().date()
+                start_of_week = today - timedelta(days=today.weekday())
+                selected_week = f"{start_of_week.isocalendar()[0]}-W{start_of_week.isocalendar()[1]}"
+
+            return {
+                'member_pairs': member_pairs,
+                'selected_member': selected_member,
+                'selected_week': selected_week
+            }
+
+    return {}
+
 @app.route('/profile', methods=['GET', 'POST'])
 @login_required
 def profile():
@@ -103,34 +156,23 @@ def profile():
     elif members:
         selected_member = members[0]
 
-    # Parse JSON fields if present
+    # Parse JSON fields
     if selected_member:
         selected_member.cuisines = json.loads(selected_member.cuisines or "[]")
         selected_member.allergies = json.loads(selected_member.allergies or "[]")
         selected_member.dietary_restrictions = json.loads(selected_member.dietary_restrictions or "[]")
 
-    # Handle updates
-    if request.method == "POST" and selected_member:
-        selected_member.name = request.form.get("member_name")
-        selected_member.daily_calories = request.form.get("daily_calories")
-        selected_member.protein_grams = request.form.get("protein_grams")
-        selected_member.fat_grams = request.form.get("fat_grams")
-        selected_member.carbs_grams = request.form.get("carbs_grams")
-        selected_member.cuisines = str(request.form.getlist("cuisines[]"))
-        selected_member.allergies = str(request.form.getlist("allergies[]"))
-        selected_member.dietary_restrictions = str(request.form.getlist("dietary_restrictions[]"))
-        db.session.commit()
-        flash("Member updated!", "success")
-        return redirect(url_for('profile', member_id=selected_member.id))
+    member_pairs = list(zip(members, [member_to_dict(m) for m in members]))
 
     form = MemberForm()
 
     return render_template(
         "profile.html",
         user=current_user,
-        members=members,
+        members=members, 
+        member_pairs=member_pairs, 
         selected_member=selected_member,
-        form=form 
+        form=form
     )
 
 def allowed_file(filename):
@@ -162,7 +204,7 @@ def edit_profile():
 
         db.session.commit()
         flash('Profile updated successfully!', 'success')
-        return redirect(url_for('edit_profile'))
+        return redirect(url_for('profile'))
 
     # === Replicate logic from profile() ===
     members = Member.query.filter_by(user_id=current_user.id).all()
@@ -240,7 +282,43 @@ def add_member():
     flash("Failed to add member")
     return redirect(url_for('profile'))  # fallback
 
-from flask import current_app
+@app.route('/edit_member/<int:member_id>', methods=['POST'])
+@login_required
+def edit_member(member_id):
+    member = Member.query.filter_by(id=member_id, user_id=current_user.id).first_or_404()
+
+    name = request.form.get("member_name")
+    if name:
+        member.name = name  # Only update if non-empty
+
+    # Nutrition fields (optional, only update if provided)
+    member.daily_calories = float(request.form.get('daily_calories')) if request.form.get('daily_calories') else member.daily_calories
+    member.protein_grams = float(request.form.get('protein_grams')) if request.form.get('protein_grams') else member.protein_grams
+    member.fat_grams = float(request.form.get('fat_grams')) if request.form.get('fat_grams') else member.fat_grams
+    member.carbs_grams = float(request.form.get('carbs_grams')) if request.form.get('carbs_grams') else member.carbs_grams
+
+    # List-type fields (JSON-encoded)
+    cuisines = request.form.getlist('cuisines')
+    member.cuisines = json.dumps(cuisines) if cuisines else member.cuisines
+
+    allergies = request.form.getlist('allergies')
+    member.allergies = json.dumps(allergies) if allergies else member.allergies
+
+    restrictions = request.form.getlist('dietary_restrictions')
+    member.dietary_restrictions = json.dumps(restrictions) if restrictions else member.dietary_restrictions
+
+    db.session.commit()
+    flash("Member updated!", "success")
+    return redirect(url_for('profile', member_id=member.id))
+
+@app.route('/delete_member/<int:member_id>', methods=['POST'])
+@login_required
+def delete_member(member_id):
+    member = Member.query.filter_by(id=member_id, user_id=current_user.id).first_or_404()
+    db.session.delete(member)
+    db.session.commit()
+    flash("Member deleted.", "success")
+    return redirect(url_for('profile'))
 
 @app.route('/change_password', methods=['POST'])
 @login_required
@@ -277,6 +355,34 @@ def home():
     return render_template('index.html', user=current_user)
 
 # =================== DIET CALCULATOR ===================
+
+def calculate_diet(weight, height, age, gender, activity, protein_pct, fat_pct, carbs_pct):
+    # BMR calculation
+    if gender == 'male':
+        bmr = 10 * weight + 6.25 * height - 5 * age + 5
+    else:
+        bmr = 10 * weight + 6.25 * height - 5 * age - 161
+
+    activity_multipliers = {
+        'sedentary': 1.2,
+        'light': 1.375,
+        'moderate': 1.55,
+        'intense': 1.725
+    }
+
+    tdee = bmr * activity_multipliers.get(activity, 1.2)
+    
+    # Macronutrient Breakdown
+    protein_pct = float(request.form['protein']) / 100
+    fat_pct = float(request.form['fat']) / 100
+    carbs_pct = 1 - protein_pct - fat_pct
+
+    protein_grams = (tdee * protein_pct) / 4
+    fat_grams = (tdee * fat_pct) / 9
+    carbs_grams = (tdee * carbs_pct) / 4
+
+    return round(bmr), round(tdee), round(protein_grams), round(fat_grams), round(carbs_grams)
+
 @app.route('/diet_calculator', methods=['GET', 'POST'])
 @login_required
 def diet_calculator():
@@ -284,6 +390,7 @@ def diet_calculator():
     bmr = tdee = protein_grams = fat_grams = carbs_grams = None 
 
     if request.method == 'POST':
+
         member_id = request.form.get('member_id')
         if member_id:
             member = Member.query.filter_by(id=member_id, user_id=current_user.id).first()
@@ -296,8 +403,6 @@ def diet_calculator():
                 flash(f"Diet info saved to {member.name}'s profile!", "success")
             else:
                 flash("Member not found or unauthorized.", "danger")
-                
-        print(f"Form data: {request.form}") 
 
         weight = request.form.get('weight')
         if weight is None:
@@ -310,39 +415,15 @@ def diet_calculator():
         age = int(request.form['age'])
         gender = request.form['gender']
         activity = request.form['activity']
+        protein = float(request.form['protein'])
+        fat = float(request.form['fat'])
+        carbs = float(request.form['carbs'])
 
-        # Optional body measurements
-        neck = float(request.form['neck']) if request.form.get('neck') else None
-        waist = float(request.form['waist']) if request.form.get('waist') else None
-        hip = float(request.form['hip']) if request.form.get('hip') else None
 
-        # BMR Calculation
-        if gender == 'male':
-            bmr = 10 * weight + 6.25 * height - 5 * age + 5
-        else:
-            if neck and waist:
-                bmr = 655 + (9.6 * weight) + (1.8 * height) - (4.7 * age) + (6.75 * (waist - neck))
-            else:
-                bmr = 10 * weight + 6.25 * height - 5 * age - 161
-
-        # Activity Multipliers
-        activity_multipliers = {
-            'sedentary': 1.2,
-            'light': 1.375,
-            'moderate': 1.55,
-            'intense': 1.725
-        }
-        tdee = bmr * activity_multipliers[activity]
-
-        # Macronutrient Breakdown
-        protein_percentage = float(request.form['protein']) / 100
-        fat_percentage = float(request.form['fat']) / 100
-        carb_percentage = 1 - protein_percentage - fat_percentage
-
-        protein_grams = (tdee * protein_percentage) / 4
-        fat_grams = (tdee * fat_percentage) / 9
-        carbs_grams = (tdee * carb_percentage) / 4
-
+        bmr, tdee, protein_grams, fat_grams, carbs_grams = calculate_diet(
+            weight, height, age, gender, activity, protein, fat, carbs
+        )
+        
         # Save the calculated values to the database (before 'Save to Profile')
         current_user.daily_calories = tdee
         current_user.protein_grams = protein_grams
@@ -354,8 +435,6 @@ def diet_calculator():
         print(f"Protein (grams): {current_user.protein_grams}")
         print(f"Fat (grams): {current_user.fat_grams}")
         print(f"Carbs (grams): {current_user.carbs_grams}")
-
-
 
         try:
             print("Attempting to commit changes to the database...")  
@@ -401,10 +480,41 @@ def diet_calculator():
             protein_grams=protein_grams,
             fat_grams=fat_grams,
             carbs_grams=carbs_grams,
-            user=current_user  # <-- Add this
+            user=current_user 
         )
 
     return render_template('diet_calculator.html')
+
+@app.route('/member_diet_calculator', methods=['POST'])
+def member_diet_calculator():
+    data = request.form
+
+    try:
+        weight = float(data['weight'])
+        height = float(data['height'])
+        age = int(data['age'])
+        gender = data['gender']
+        activity = data['activity']
+        protein = float(data['protein'])
+        fat = float(data['fat'])
+        carbs = float(data['carbs'])
+
+        bmr, tdee, protein_grams, fat_grams, carbs_grams = calculate_diet(
+            weight, height, age, gender, activity, protein, fat, carbs
+        )
+
+        return jsonify({
+            'bmr': bmr,
+            'tdee': tdee,
+            'protein': protein_grams,
+            'fat': fat_grams,
+            'carbs': carbs_grams
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+    
+
 
 # =================== GROCERY LIST ===================
 # Grocery List Routes
@@ -905,6 +1015,7 @@ def save_to_meal_planner():
     recipe_micro = request.form['recipe_micro']
     meal = request.form['meal']
     date_str = request.form['date']
+    member_id = request.form.get('member_id', type=int) 
 
     try:
         date = datetime.strptime(date_str, "%Y-%m-%d").date()
@@ -918,10 +1029,13 @@ def save_to_meal_planner():
         existing.recipe_calories = recipe_calories
         existing.recipe_macro = recipe_macro
         existing.recipe_micro = recipe_micro
+        if member_id:
+            existing.member_id = member_id  
         flash(f"{meal.capitalize()} on {date} updated.", "success")
     else:
         new_entry = MealPlan(
             user_id=current_user.id,
+            member_id=member_id,  # <-- link to member
             date=date,
             meal_type=meal,
             recipe_name=recipe_name,
@@ -933,7 +1047,7 @@ def save_to_meal_planner():
         flash(f"{meal.capitalize()} on {date} added.", "success")
 
     db.session.commit()
-    return redirect(url_for('meal_planner'))
+    return redirect(url_for('meal_planner', member_id=member_id))
 
 
 # =================== MEAL PLANNER ===================
@@ -956,11 +1070,30 @@ def meal_planner():
         end_of_week = start_of_week + timedelta(days=6)
         week_param = f"{start_of_week.isocalendar()[0]}-W{start_of_week.isocalendar()[1]}"
 
+    # Member selection logic
+    members = Member.query.filter_by(user_id=current_user.id).all()
+    selected_member_id = request.args.get('member_id', type=int)
+
+    selected_member = None
+    if selected_member_id:
+        selected_member = Member.query.filter_by(id=selected_member_id, user_id=current_user.id).first()
+    elif members:
+        selected_member = members[0]
+
+    # Dictionary representation of each member for display
+    member_pairs = [(m, {'id': m.id, 'name': m.name}) for m in members]
+
+    # Meal plans
     meals = MealPlan.query.filter(
         MealPlan.user_id == current_user.id,
         MealPlan.date >= start_of_week,
         MealPlan.date <= end_of_week
-    ).all()
+    )
+
+    if selected_member:
+        meals = meals.filter(MealPlan.member_id == selected_member.id)
+
+    meals = meals.all()
 
     meal_data = {}
     for meal in meals:
@@ -974,16 +1107,26 @@ def meal_planner():
             'macro': meal.recipe_macro,
             'micro': meal.recipe_micro
         }
+        meal_data[key_by_date] = meal_data[key_by_day]
 
-        meal_data[key_by_date] = meal_data[key_by_day]  
-
+    form = MemberForm(obj=selected_member) if selected_member else MemberForm()
 
     return render_template(
         "meal_planner.html",
         meal_data=meal_data,
         selected_week=week_param,
         start_of_week=start_of_week,
-        timedelta=timedelta 
+        timedelta=timedelta,
+        members=members,
+        member_pairs=member_pairs,
+        selected_member=selected_member,
+        diet_info_member={
+            'daily_calories': selected_member.daily_calories if selected_member else None,
+            'protein_grams': selected_member.protein_grams if selected_member else None,
+            'fat_grams': selected_member.fat_grams if selected_member else None,
+            'carbs_grams': selected_member.carbs_grams if selected_member else None,
+        },
+        form=form
     )
 
 # =================== PANTRY ORGANIZATION ===================

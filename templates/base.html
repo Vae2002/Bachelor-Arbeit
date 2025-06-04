@@ -5,114 +5,63 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Kitchen App{% endblock %}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f7fa;
-            text-align: center;
-            color: #333;
-        }
-        .container {
-            margin-top: 50px;
-        }
-        .btn-custom {
-            padding: 15px;
-            font-size: 1.2rem;
-            border-radius: 8px;
-            width: 100%;
-            max-width: 300px;
-        }
-        .navbar {
-            padding: 15px;
-        }
-        .navbar-brand {
-            font-size: 1.5rem;
-            font-weight: bold;
-        }
-        .navbar-nav .nav-item {
-            margin-right: 15px;
-        }
-        .nav-link {
-            color: white !important;
-            font-size: 1.1rem;
-        }
-
-        .dropbtn {
-        background-color: #04AA6D;
-        color: white;
-        padding: 16px;
-        font-size: 16px;
-        border: none;
-        }
-
-        .dropdown {
-        position: relative;
-        display: inline-block;
-        }
-
-        .dropdown-content {
-        display: none;
-        position: absolute;
-        background-color: #f1f1f1;
-        min-width: 160px;
-        box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-        z-index: 1;
-        }
-
-        .dropdown-content a {
-        color: black;
-        padding: 12px 16px;
-        text-decoration: none;
-        display: block;
-        }
-
-        .dropdown-menu {
-        z-index: 1050;
-        }
-
-
-        .dropdown-content a:hover {background-color: #ddd;}
-
-        .dropdown:hover .dropdown-content {display: block;}
-
-        .dropdown:hover .dropbtn {background-color: #3e8e41;}
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
 <body>
 
     <!-- Navigation Bar -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-        <div class="container">
+        <div class="container d-flex align-items-center justify-content-between">
             <a class="navbar-brand" href="/">Kitchen App</a>
-            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('meal_planner') }}">Meal Planner</a>
-                    </li> 
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('recipe_lookup') }}">Recipe Lookup</a>
-                    </li> 
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('diet_calculator') }}">Diet Calculator</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('pantry') }}">Pantry</a>
-                    </li>       
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('grocery') }}">Grocery List</a>
-                    </li>             
 
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('profile') }}">
+            <div class="ms-3">
+                <input type="hidden" id="selected_week_header" value="{{ selected_week }}">
+                <select class="form-select form-select-sm" onchange="changeMember(this)">
+                    {% for m, m_data in member_pairs %}
+                        <option value="{{ m_data.id }}" {% if selected_member and m_data.id == selected_member.id %}selected{% endif %}>
+                            {{ m_data.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="d-flex align-items-center">
+                <!-- Burger Button -->
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                    aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Profile Picture for Mobile (beside burger) -->
+                <a class="nav-link p-0 ms-2 d-lg-none" href="{{ url_for('profile') }}">
+                    {% if current_user.profile_pic %}
+                    <img src="{{ url_for('static', filename='uploads/' + current_user.profile_pic) }}" class="rounded-circle navbar-profile-pic" width="32" height="32">
+                    {% else %}
+                    <div class="rounded-circle bg-white text-primary d-flex justify-content-center align-items-center" style="width: 32px; height: 32px;">
+                        <span>{{ current_user.username[0].upper() }}</span>
+                    </div>
+                    {% endif %}
+                </a>
+            </div>
+
+            <!-- Collapsible nav content -->
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto align-items-center">
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('meal_planner') }}">Meal Planner</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('recipe_lookup') }}">Recipe Lookup</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('diet_calculator') }}">Diet Calculator</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('pantry') }}">Pantry</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('grocery') }}">Grocery List</a></li>
+
+                    <!-- Profile Picture for Desktop -->
+                    <li class="nav-item d-none d-lg-block">
+                        <a class="nav-link p-0 me-3" href="{{ url_for('profile') }}">
                             {% if current_user.profile_pic %}
-                                <img src="{{ url_for('static', filename='uploads/' + current_user.profile_pic) }}" class="rounded-circle" width="40" height="40">
+                            <img src="{{ url_for('static', filename='uploads/' + current_user.profile_pic) }}" class="rounded-circle navbar-profile-pic" width="32" height="32">
                             {% else %}
-                                <div class="rounded-circle bg-primary text-white d-flex justify-content-center align-items-center" style="width: 40px; height: 40px;">
-                                    <span>{{ current_user.username[0].upper() }}</span>
-                                </div>
+                            <div class="rounded-circle bg-white text-primary d-flex justify-content-center align-items-center" style="width: 32px; height: 32px;">
+                                <span>{{ current_user.username[0].upper() }}</span>
+                            </div>
                             {% endif %}
                         </a>
                     </li>
@@ -124,6 +73,8 @@
             </div>
         </div>
     </nav>
+
+
 
     <!-- Flash Messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -149,11 +100,29 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
 
+    <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
+
     <script 
         src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" 
         integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" 
         crossorigin="anonymous">
     </script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const storedMemberId = localStorage.getItem("selectedMemberId");
+            const urlParams = new URLSearchParams(window.location.search);
+            const currentMemberId = urlParams.get("member_id");
+
+            if (storedMemberId && !currentMemberId) {
+                // Redirect to same path but with member_id
+                let newUrl = new URL(window.location.href);
+                newUrl.searchParams.set("member_id", storedMemberId);
+                window.location.replace(newUrl.toString());
+            }
+        });
+    </script>
+
 
 </body>
 </html>
