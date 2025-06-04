@@ -104,6 +104,46 @@ def member_to_dict(member):
         # 'dietary_restrictions': json.dumps(member.dietary_restrictions) if member.dietary_restrictions else None
     }
 
+def try_json_load(val):
+    try:
+        return ", ".join(json.loads(val)) if val else ""
+    except (json.JSONDecodeError, TypeError):
+        return val or ""
+
+@app.context_processor
+def inject_member_dropdown_data():
+    if current_user.is_authenticated:
+        with db.session.no_autoflush:
+            members = Member.query.filter_by(user_id=current_user.id).all()
+            member_pairs = [(m, {'id': m.id, 'name': m.name}) for m in members]
+            selected_member_id = request.args.get('member_id', type=int)
+            selected_member = None
+
+            if selected_member_id:
+                selected_member = Member.query.filter_by(id=selected_member_id, user_id=current_user.id).first()
+            elif members:
+                selected_member = members[0]
+
+            if selected_member:
+                # Safely decode JSON fields for display
+                selected_member.cuisines = try_json_load(selected_member.cuisines)
+                selected_member.allergies = try_json_load(selected_member.allergies)
+                selected_member.dietary_restrictions = try_json_load(selected_member.dietary_restrictions)
+
+            selected_week = request.args.get("week")
+            if not selected_week:
+                today = datetime.today().date()
+                start_of_week = today - timedelta(days=today.weekday())
+                selected_week = f"{start_of_week.isocalendar()[0]}-W{start_of_week.isocalendar()[1]}"
+
+            return {
+                'member_pairs': member_pairs,
+                'selected_member': selected_member,
+                'selected_week': selected_week
+            }
+
+    return {}
+
 @app.route('/profile', methods=['GET', 'POST'])
 @login_required
 def profile():

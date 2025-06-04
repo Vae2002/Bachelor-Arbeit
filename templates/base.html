@@ -14,6 +14,18 @@
         <div class="container d-flex align-items-center justify-content-between">
             <a class="navbar-brand" href="/">Kitchen App</a>
 
+            <form method="get" action="{{ url_for('meal_planner') }}" class="ms-3">
+                <input type="hidden" name="week" value="{{ selected_week }}">
+                <select name="member_id" class="form-select form-select-sm" onchange="this.form.submit()">
+                    {% for m, m_data in member_pairs %}
+                        <option value="{{ m_data.id }}" {% if selected_member and m_data.id == selected_member.id %}selected{% endif %}>
+                            {{ m_data.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </form>
+
+
             <div class="d-flex align-items-center">
                 <!-- Burger Button -->
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
