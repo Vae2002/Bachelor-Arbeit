@@ -540,15 +540,13 @@ def add_item():
 
     return redirect(url_for('grocery'))
 
-@app.route('/delete/<int:item_id>')
+@app.route('/delete_grocery/<int:item_id>')
 @login_required
-def delete_item(item_id):
+def delete_grocery_item(item_id):
     item = GroceryItem.query.get_or_404(item_id)
-
     if item.user_id != current_user.id:
         flash("Unauthorized action!", "danger")
         return redirect(url_for('grocery'))
-
     db.session.delete(item)
     db.session.commit()
     return redirect(url_for('grocery'))
@@ -1262,6 +1260,20 @@ def pantry():
 
     items = Pantry.query.filter_by(user_id=current_user.id).all()
     return render_template('pantry.html', items=items)
+
+@app.route('/delete_pantry/<int:item_id>', methods=['POST'])
+@login_required
+def delete_pantry_item(item_id):
+    item = Pantry.query.get_or_404(item_id)
+    if item.user_id != current_user.id:
+        flash("Unauthorized action.", "danger")
+        return redirect(url_for('pantry'))
+
+    db.session.delete(item)
+    db.session.commit()
+    flash("Item deleted successfully.", "success")
+    return redirect(url_for('pantry'))
+
 
 # ------------------ INIT DB ------------------ #
 if __name__ == '__main__':

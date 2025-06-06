@@ -147,18 +147,24 @@
         </thead>
         <tbody>
             {% for item in items %}
-            <tr>
-                <form method="POST" action="{{ url_for('pantry') }}">
-                    <input type="hidden" name="item_id" value="{{ item.id }}">
-                    <td><input type="checkbox" class="form-check-input" name="selected" {% if item.selected %}checked{% endif %}></td>
-                    <td><input type="text" name="item" value="{{ item.name }}" class="form-control"></td>
-                    <td><input type="number" name="quantity" value="{{ item.quantity }}" class="form-control"></td>
-                    <td><input type="date" name="expiration" value="{{ item.expired }}" class="form-control"></td>
-                    <td>
-                        <button type="submit" class="btn btn-primary btn-sm">Save</button>
-                    </td>
-                </form>
-            </tr>
+                <tr>
+                    <!-- Update Form -->
+                    <form method="POST" action="{{ url_for('pantry') }}">
+                        <input type="hidden" name="item_id" value="{{ item.id }}">
+                        <td><input type="checkbox" class="form-check-input" name="selected" {% if item.selected %}checked{% endif %}></td>
+                        <td><input type="text" name="item" value="{{ item.name }}" class="form-control"></td>
+                        <td><input type="number" name="quantity" value="{{ item.quantity }}" class="form-control"></td>
+                        <td><input type="date" name="expiration" value="{{ item.expired }}" class="form-control"></td>
+                    </form>
+
+                    <!-- Delete Form -->
+                    <form method="POST" action="{{ url_for('delete_pantry_item', item_id=item.id) }}" onsubmit="">
+                        <td colspan="5" class="text-end">
+                            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                        </td>
+                    </form>
+                </tr>
+
             {% endfor %}
         </tbody>
     </table>
