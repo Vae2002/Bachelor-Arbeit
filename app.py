@@ -196,8 +196,11 @@ def edit_profile():
                 filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                 file.save(filepath)
 
-                # Optionally remove old profile pic
-                if user.profile_pic and os.path.exists(os.path.join(app.config['UPLOAD_FOLDER'], user.profile_pic)):
+                if (
+                    user.profile_pic and
+                    user.profile_pic != 'default.jpg' and
+                    os.path.exists(os.path.join(app.config['UPLOAD_FOLDER'], user.profile_pic))
+                ):
                     os.remove(os.path.join(app.config['UPLOAD_FOLDER'], user.profile_pic))
 
                 user.profile_pic = filename
