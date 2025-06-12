@@ -1205,13 +1205,49 @@ def recipe_detail(recipe_name):
 @app.route('/save_to_meal_planner', methods=['POST'])
 @login_required
 def save_to_meal_planner():
-    recipe_name = request.form['recipe_name']
-    recipe_calories = request.form['recipe_calories']
-    recipe_macro = request.form['recipe_macro']
-    recipe_micro = request.form['recipe_micro']
-    meal = request.form['meal']
-    date_str = request.form['date']
-    member_id = request.form.get('member_id', type=int) 
+    # Detect if it's a weekly (bulk) save
+    # bulk_meal_keys = [key for key in request.form if key.startswith("meal_") and key.endswith("_name")]
+    recipe_name = request.form.get('recipe_name')
+    recipe_calories = request.form.get('recipe_calories')
+    recipe_macro = request.form.get('recipe_macro')
+    recipe_micro = request.form.get('recipe_micro')
+    meal = request.form.get('meal')
+    date_str = request.form.get('date')
+    member_id = request.form.get('member_id', type=int)
+
+    deleted_meals_json = request.form.get("confirmed_deleted_meals")
+    if deleted_meals_json:
+        try:
+            deleted_meals = json.loads(deleted_meals_json)
+        except Exception as e:
+            print("Error parsing deleted meals JSON:", e)
+            deleted_meals = []
+
+        for entry in deleted_meals:
+            date_str = entry.get("date")
+            meal_type = entry.get("meal_type")
+
+            try:
+                date = datetime.strptime(date_str, "%Y-%m-%d").date()
+            except Exception:
+                continue
+
+            existing = MealPlan.query.filter_by(
+                user_id=current_user.id,
+                date=date,
+                meal_type=meal_type,
+                member_id=member_id
+            ).first()
+
+            if existing:
+                print(f"Deleting {meal_type} on {date}")
+                db.session.delete(existing)
+            else:
+                print(f"No entry to delete for {meal_type} on {date}")
+
+        db.session.commit()
+        flash("Selected meals deleted.", "success")
+        return redirect(url_for("meal_planner", member_id=member_id))
 
     try:
         date = datetime.strptime(date_str, "%Y-%m-%d").date()
@@ -1225,31 +1261,25 @@ def save_to_meal_planner():
         existing.recipe_calories = recipe_calories
         existing.recipe_macro = recipe_macro
         existing.recipe_micro = recipe_micro
-        if member_id:
-            existing.member_id = member_id  
+        existing.member_id = member_id
         flash(f"{meal.capitalize()} on {date} updated.", "success")
     else:
-        new_entry = MealPlan(
+        db.session.add(MealPlan(
             user_id=current_user.id,
-            member_id=member_id,  # <-- link to member
+            member_id=member_id,
             date=date,
             meal_type=meal,
             recipe_name=recipe_name,
             recipe_calories=recipe_calories,
             recipe_macro=recipe_macro,
             recipe_micro=recipe_micro
-        )
-        db.session.add(new_entry)
+        ))
         flash(f"{meal.capitalize()} on {date} added.", "success")
 
     db.session.commit()
 
-    # Detect if the request came from fetch (not a normal form submission)
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return jsonify({
-            'success': True,
-            'message': f"{meal.capitalize()} on {date} saved.",
-        })
+        return jsonify({'success': True, 'message': f"{meal.capitalize()} on {date} saved."})
 
     return redirect(url_for('meal_planner', member_id=member_id))
 

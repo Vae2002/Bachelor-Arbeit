@@ -55,6 +55,7 @@
 
             <div class="row g-4">
                 {% for day in days %}
+                <input type="hidden" name="member_id" value="{{ selected_member.id }}">
                 {% if loop.index == 5 %}</div><div class="row g-4 mt-4 justify-content-center">{% endif %}
                 <div class="col-md-3">
                     <label class="form-label">
@@ -67,15 +68,22 @@
                     {% for meal in meals %}
                     {% set meal_key = day ~ '_' ~ meal %}
                     {% set meal_info = meal_data.get(meal_key, {}) %}
-                    <div class="row mb-2">
+                    <div class="row mb-2 position-relative meal-entry" data-meal="{{ meal_key }}">
                         <div class="col-7">
                             <div class="form-control bg-light small-text">
                                 <strong>{{ meal.capitalize() }}:</strong><br>
                                 {{ meal_info.get('name', '—') }}
+                                <input type="hidden" name="meal_{{ meal_key }}_name" value="{{ meal_info.get('name', '') }}">
+                                <input type="hidden" name="meal_{{ meal_key }}_calories" value="{{ meal_info.get('calories', '') }}">
+                                <input type="hidden" name="meal_{{ meal_key }}_macro" value="{{ meal_info.get('macro', '') }}">
+                                <input type="hidden" name="meal_{{ meal_key }}_micro" value="{{ meal_info.get('micro', '') }}">
+                                <input type="hidden" name="meal_{{ meal_key }}_date" value="{{ current_date }}">
+                                <input type="hidden" name="meal_{{ meal_key }}_type" value="{{ meal }}">
                             </div>
                         </div>
                         <div class="col-5">
                             <div class="form-control bg-light text-end small-text">
+                                <button type="button" class="btn-close position-absolute top-0 end-0 m-1 d-none delete-meal-btn" aria-label="Delete"></button>
                                 <small><strong>Calories:</strong></small><br>
                                 {% set cal = meal_info.get('calories') %}
                                 {{ cal if cal else '—' }} kcal<br>
@@ -117,7 +125,7 @@
             <!-- Weekly View Buttons -->
             <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1050;">
                 <div class="d-flex flex-column align-items-end gap-2">
-                    <button type="button" class="btn btn-secondary">Edit</button>
+                    <button type="button" class="btn btn-secondary" id="edit-toggle">Edit</button>
                     <button type="button" class="btn btn-info">Email</button>
                     <button type="button" class="btn btn-dark" onclick="window.print()">Print</button>
                 </div>
@@ -413,6 +421,79 @@
         if (week) {
             window.location.href = `/meal_planner?week=${week}`;
         }
+    });
+
+    document.addEventListener("DOMContentLoaded", function () {
+        const editBtn = document.getElementById("edit-toggle");
+        let editMode = false;
+
+        editBtn.addEventListener("click", () => {
+            editMode = !editMode;
+
+            // Toggle delete buttons
+            document.querySelectorAll(".delete-meal-btn").forEach(btn => {
+                btn.classList.toggle("d-none", !editMode);
+            });
+
+            // Toggle button text
+            editBtn.textContent = editMode ? "Save" : "Edit";
+
+            if (!editMode) {
+                document.querySelector("form").submit(); // Trigger form submission
+            }
+        });
+
+        let confirmedDeletedMealKeys = [];
+
+        document.addEventListener("click", function (e) {
+            if (e.target.classList.contains("delete-meal-btn")) {
+                const container = e.target.closest(".meal-entry");
+                const mealKey = container.dataset.meal;
+
+                const dateInput = document.querySelector(`input[name="meal_${mealKey}_date"]`);
+                const typeInput = document.querySelector(`input[name="meal_${mealKey}_type"]`);
+
+                if (!dateInput || !typeInput) return;
+
+                const mealDate = dateInput.value;
+                const mealType = typeInput.value;
+
+                const confirmed = confirm(`Are you sure you want to delete ${mealKey.replace('_', ' ')}?`);
+                if (!confirmed) return;
+
+                // Store after confirmation
+                confirmedDeletedMealKeys.push({ date: mealDate, meal_type: mealType });
+
+                // Add hidden input to form so Flask gets it
+                const form = document.querySelector("form");
+                const hidden = document.createElement("input");
+                hidden.type = "hidden";
+                hidden.name = "confirmed_deleted_meals";
+                hidden.value = JSON.stringify(confirmedDeletedMealKeys);
+                form.appendChild(hidden);
+
+                // Clear values and update UI
+                document.querySelector(`input[name="meal_${mealKey}_name"]`).value = "";
+                document.querySelector(`input[name="meal_${mealKey}_calories"]`).value = "";
+                document.querySelector(`input[name="meal_${mealKey}_macro"]`).value = "";
+                document.querySelector(`input[name="meal_${mealKey}_micro"]`).value = "";
+
+                const nameDiv = container.querySelector(".col-7 .form-control");
+                const calDiv = container.querySelector(".col-5 .form-control");
+
+                if (nameDiv) {
+                    nameDiv.innerHTML = `<strong>${mealType.charAt(0).toUpperCase() + mealType.slice(1)}:</strong><br>—`;
+                }
+
+                if (calDiv) {
+                    calDiv.innerHTML = `
+                        <button type="button" class="btn-close position-absolute top-0 end-0 m-1 d-none delete-meal-btn" aria-label="Delete"></button>
+                        <small><strong>Calories:</strong></small><br>— kcal
+                    `;
+                }
+            }
+        });
+
     });
 
 </script>
