@@ -86,9 +86,30 @@
                         </div>
                     </div>
                     {% endfor %}
+
+                    {% set total_protein = namespace(value=0) %}
+                    {% set total_fat = namespace(value=0) %}
+                    {% set total_carbs = namespace(value=0) %}
+
+                    {% for meal in meals %}
+                        {% set meal_key = day ~ '_' ~ meal %}
+                        {% set meal_info = meal_data.get(meal_key, {}) %}
+                        {% for pair in meal_info.get('macro', []) %}
+                            {% if "protein" in pair[0]|lower %}
+                                {% set total_protein.value = total_protein.value + pair[1]|float %}
+                            {% elif "fat" in pair[0]|lower %}
+                                {% set total_fat.value = total_fat.value + pair[1]|float %}
+                            {% elif "carb" in pair[0]|lower and "fiber" not in pair[0]|lower and "net" not in pair[0]|lower and "sugar" not in pair[0]|lower %}
+                                {% set total_carbs.value = total_carbs.value + pair[1]|float %}
+                            {% endif %}
+                        {% endfor %}
+                    {% endfor %}
+
                     <div class="form-control text-center bg-warning-subtle mt-3">
-                        <strong>Total Calories:</strong> {{ daily_total.value }} kcal
+                        <strong>Total Calories:</strong> {{ daily_total.value }} kcal<br>
+                        <small>Protein: {{ total_protein.value | round(1) }}g | Fats: {{ total_fat.value | round(1) }}g | Carbs: {{ total_carbs.value | round(1) }}g</small>
                     </div>
+
                 </div>
                 {% endfor %}
                 <!-- Weekly View Buttons -->
@@ -183,7 +204,11 @@
                 .filter(([key, _]) => key.startsWith(selectedDate));
 
             let total = 0;
+            let totalProtein = 0;
+            let totalFat = 0;
+            let totalCarbs = 0;
             let content = ``;
+
 
             if (dateMeals.length === 0) {
                 content += `<p class="text-center text-muted">No meals found for this date.</p>`;
@@ -193,9 +218,33 @@
                     const entry = mealData[key] || {};
                     const name = entry.name || '—';
                     const calories = entry.calories || 0;
-                    const macro = entry.macro || '';
-                    const micro = entry.micro || '';
+                    let macro = entry.macro || '';
+                    try {
+                        macro = JSON.parse(macro.replaceAll("(", "[").replaceAll(")", "]").replaceAll("'", '"'));
+                    } catch (e) {
+                        macro = [];
+                    }
+
+                    let micro = entry.micro || '';
+                    try {
+                        micro = JSON.parse(micro.replaceAll("(", "[").replaceAll(")", "]").replaceAll("'", '"'));
+                    } catch (e) {
+                        micro = [];
+                    }
+
                     total += parseInt(calories) || 0;
+                    
+                    console.log(macro)
+
+                    if (Array.isArray(macro)) {
+                        macro.forEach(([key, value]) => {
+                            const k = key.toLowerCase();
+                            const v = parseFloat(value);
+                            if (k.includes("protein")) totalProtein += v;
+                            if (k.includes("fat")) totalFat += v;
+                            if (k.includes("carb")) totalCarbs += v;
+                        });
+                    }
 
                     content += `
                         <div class="card my-3 shadow-sm">
@@ -210,7 +259,13 @@
                 });
             }
 
-            content += `<div class="alert alert-info text-center"><strong>Total:</strong> ${total} kcal</div>`;
+            content += `
+                <div class="alert alert-info text-center">
+                    <strong>Total:</strong> ${total} kcal<br>
+                    <small>Protein: ${totalProtein.toFixed(1)} g &nbsp;&nbsp; 
+                    Fats: ${totalFat.toFixed(1)} g &nbsp;&nbsp; 
+                    Carbs: ${totalCarbs.toFixed(1)} g</small>
+                </div>`;
             dailyContent.innerHTML = content;
         });
 
