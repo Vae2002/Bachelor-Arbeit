@@ -17,31 +17,31 @@
             </div>
         </div>
 
-        <!-- Diet Info -->
-        <div class="row justify-content-center">
-            <h3 class="text-center mb-3">Diet Information</h3>
-            {% set diet_info = [
-                ('Daily Calories', diet_info_member.daily_calories if diet_info_member else None, ''),
-                ('Protein', diet_info_member.protein_grams if diet_info_member else None, 'g'),
-                ('Fats', diet_info_member.fat_grams if diet_info_member else None, 'g'),
-                ('Carbs', diet_info_member.carbs_grams if diet_info_member else None, 'g')
-            ] %}
-
-            {% for label, value, unit in diet_info %}
-                <div class="col-md-3 mb-3">
-                    <br>
-                    <div class="card text-center shadow-sm">
-                        <div class="card-body">
-                            <h6 class="card-title"><strong>{{ label }}</strong></h6>
-                            <p class="card-text fs-5">{{ value or "—" }} {{ unit }}</p>
-                        </div>
-                    </div>
-                </div>
-            {% endfor %}
-        </div>
-
         <!-- Weekly View -->
         <div id="weekly-view">
+            <!-- Diet Info -->
+            <div class="row justify-content-center">
+                <h3 class="text-center mb-3">Diet Information</h3>
+                {% set diet_info = [
+                    ('Daily Calories', diet_info_member.daily_calories if diet_info_member else None, ''),
+                    ('Protein', diet_info_member.protein_grams if diet_info_member else None, 'g'),
+                    ('Fats', diet_info_member.fat_grams if diet_info_member else None, 'g'),
+                    ('Carbs', diet_info_member.carbs_grams if diet_info_member else None, 'g')
+                ] %}
+
+                {% for label, value, unit in diet_info %}
+                    <div class="col-md-3 mb-3">
+                        <br>
+                        <div class="card text-center shadow-sm">
+                            <div class="card-body">
+                                <h6 class="card-title"><strong>{{ label }}</strong></h6>
+                                <p class="card-text fs-5">{{ value or "—" }} {{ unit }}</p>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+
             {% set days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] %}
             {% set meals = ['breakfast', 'lunch', 'snack', 'dinner', 'extra'] %}
 
@@ -124,6 +124,8 @@
 
         <!-- Daily View -->
         <div id="daily-view" style="display: none;">
+            <div id="daily-breakdown" class="mt-5"></div>
+            
             <div class="text-center my-4">
                 <h3>Select a Date</h3>
                 <input type="date" id="date-picker" class="form-control w-auto mx-auto">
@@ -267,6 +269,89 @@
                     Carbs: ${totalCarbs.toFixed(1)} g</small>
                 </div>`;
             dailyContent.innerHTML = content;
+
+            const targetProtein = parseFloat("{{ diet_info_member.protein_grams if diet_info_member else 0 }}");
+            const targetFat = parseFloat("{{ diet_info_member.fat_grams if diet_info_member else 0 }}");
+            const targetCarbs = parseFloat("{{ diet_info_member.carbs_grams if diet_info_member else 0 }}");
+            const targetCalories = parseFloat("{{ diet_info_member.daily_calories if diet_info_member else 0 }}");
+
+            const proteinPercent = targetProtein ? (totalProtein / targetProtein * 100) : 0;
+            const fatPercent = targetFat ? (totalFat / targetFat * 100) : 0;
+            const carbsPercent = targetCarbs ? (totalCarbs / targetCarbs * 100) : 0;
+            const calPercent = targetCalories ? (total / targetCalories * 100) : 0;
+
+            function progressColor(key, percent) {
+                if (key === 'protein') {
+                    if (percent < 50) return '#f8d7da';
+                    else if (percent < 80) return '#fff3cd';
+                    else return '#d1e7dd';
+                } else {
+                    if (percent < 50) return '#d1e7dd';
+                    else if (percent < 80) return '#fff3cd';
+                    else return '#f8d7da';
+                }
+            }
+
+            function bgStyle(key, percent) {
+                const color = progressColor(key, percent);
+                const rounded = Math.round(percent);
+                return `background: linear-gradient(to right, ${color} ${rounded}%, #f8f9fa ${rounded}%);`;
+            }
+
+            const nutrientCards = [
+            ['Protein', 'protein', targetProtein, totalProtein, proteinPercent],
+            ['Fats', 'fat', targetFat, totalFat, fatPercent],
+            ['Carbs', 'carbs', targetCarbs, totalCarbs, carbsPercent]
+            ].map(([label, key, target, consumed, percent]) => {
+            return `
+                <div class="col-md-4 mb-3">
+                <div class="card shadow-sm h-100" style="${bgStyle(key, percent)}">
+                    <div class="card-body">
+                    <h5 class="card-title">${label}</h5>
+                    <hr>
+                    <p><strong>Target:</strong> ${target} g</p>
+                    <p><strong>Consumed:</strong> ${consumed.toFixed(1)} g</p>
+                    <p><strong>Remaining:</strong> ${(target - consumed).toFixed(1)} g</p>
+                    </div>
+                </div>
+                </div>
+            `;
+            }).join('');
+
+            document.getElementById("daily-breakdown").innerHTML = `
+                <h3 class="mt-5 mb-3 text-center">Diet Breakdown for Selected Day</h3>
+                <div class="row justify-content-center text-center mb-4">
+                    <div class="col-md-4 mb-3">
+                        <div class="card shadow-sm border-primary">
+                            <div class="card-body">
+                                <h5 class="card-title">Calories Target</h5>
+                                <p class="fs-5">${targetCalories} kcal</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card shadow-sm border-success">
+                            <div class="card-body">
+                                <h5 class="card-title text-success">Calories Consumed</h5>
+                                <p class="fs-5">${total.toFixed(1)} kcal</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card shadow-sm" style="${bgStyle('calories', calPercent)}">
+                            <div class="card-body">
+                                <h5 class="card-title text-danger">Calories Remaining</h5>
+                                <p class="fs-5"><strong>${(targetCalories - total).toFixed(1)} kcal</strong></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row justify-content-center text-center mb-4">
+                    ${nutrientCards}
+                </div>
+            `;
+
         });
 
     });
