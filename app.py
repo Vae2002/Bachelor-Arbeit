@@ -363,10 +363,11 @@ def home():
     selected_member_id = request.args.get('member_id', type=int)
 
     selected_member = None
+
     if selected_member_id:
         selected_member = Member.query.filter_by(id=selected_member_id, user_id=current_user.id).first()
-    elif members:
-        selected_member = members[0]
+    else:
+        selected_member = members[0] if members else None
 
     member_pairs = [(m, {'id': m.id, 'name': m.name}) for m in members]
 
@@ -414,11 +415,6 @@ def home():
             'macro': macro_data,  # actual list of tuples
             'micro': meal.recipe_micro
         }
-
-
-    # Get member nutrient targets
-    members = Member.query.filter_by(user_id=current_user.id).all()
-    selected_member = members[0] if members else None
 
     targets = {
         "calories": selected_member.daily_calories if selected_member else 0,
