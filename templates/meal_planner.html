@@ -458,26 +458,28 @@
                 const mealDate = dateInput.value;
                 const mealType = typeInput.value;
 
-                const confirmed = confirm(`Are you sure you want to delete ${mealKey.replace('_', ' ')}?`);
-                if (!confirmed) return;
+                if (!confirm(`Are you sure you want to delete ${mealKey.replace('_', ' ')}?`)) return;
 
-                // Store after confirmation
+                // Store the deletion info
                 confirmedDeletedMealKeys.push({ date: mealDate, meal_type: mealType });
 
-                // Add hidden input to form so Flask gets it
-                const form = document.querySelector("form");
-                const hidden = document.createElement("input");
-                hidden.type = "hidden";
-                hidden.name = "confirmed_deleted_meals";
+                // Update the hidden input (create it if it doesn't exist)
+                let hidden = document.querySelector('input[name="confirmed_deleted_meals"]');
+                if (!hidden) {
+                    hidden = document.createElement("input");
+                    hidden.type = "hidden";
+                    hidden.name = "confirmed_deleted_meals";
+                    document.querySelector("form").appendChild(hidden);
+                }
                 hidden.value = JSON.stringify(confirmedDeletedMealKeys);
-                form.appendChild(hidden);
 
-                // Clear values and update UI
+                // Clear input fields
                 document.querySelector(`input[name="meal_${mealKey}_name"]`).value = "";
                 document.querySelector(`input[name="meal_${mealKey}_calories"]`).value = "";
                 document.querySelector(`input[name="meal_${mealKey}_macro"]`).value = "";
                 document.querySelector(`input[name="meal_${mealKey}_micro"]`).value = "";
 
+                // Update UI
                 const nameDiv = container.querySelector(".col-7 .form-control");
                 const calDiv = container.querySelector(".col-5 .form-control");
 
