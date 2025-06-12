@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="container mt-4">
-    <h2 class="text-center mb-4">Weekly Meal Planner</h2>
+    <h2 class="text-center mb-4">Meal Planner</h2>
 
     <form method="POST" action="{{ url_for('save_to_meal_planner') }}">
         {{ form.csrf_token() if form and form.csrf_token }}
@@ -182,6 +182,7 @@
         const mealData = {{ meal_data | tojson | safe }};
 
         weeklyBtn.addEventListener('click', () => {
+            localStorage.setItem('mealPlannerView', 'weekly');
             weeklyBtn.classList.add('active');
             dailyBtn.classList.remove('active');
             weeklyView.style.display = 'block';
@@ -189,17 +190,36 @@
         });
 
         dailyBtn.addEventListener('click', () => {
+            localStorage.setItem('mealPlannerView', 'daily');
+
+            const picker = document.getElementById('date-picker');
+            const today = new Date().toISOString().split('T')[0];
+
+            if (picker) {
+                // Default to today if empty
+                if (!picker.value) {
+                    picker.value = today;
+                }
+                localStorage.setItem('selectedDate', picker.value);  // Save the date
+            }
+
             dailyBtn.classList.add('active');
             weeklyBtn.classList.remove('active');
             weeklyView.style.display = 'none';
             dailyView.style.display = 'block';
+
+            if (picker && picker.value) {
+                picker.dispatchEvent(new Event('change'));
+            }
         });
+
 
         const daySelect = document.getElementById('day-select');
         const dailyContent = document.getElementById('daily-content');
         const datePicker = document.getElementById('date-picker');
 
         datePicker?.addEventListener('change', function () {
+            localStorage.setItem('selectedDate', this.value);
             const selectedDate = this.value;  // Format: "YYYY-MM-DD"
             const mealData = {{ meal_data | tojson | safe }};
             const dateMeals = Object.entries(mealData)
@@ -353,7 +373,18 @@
             `;
 
         });
-
+        
+        const savedView = localStorage.getItem('mealPlannerView');
+        if (savedView === 'daily') {
+            const savedDate = localStorage.getItem('selectedDate');
+            const picker = document.getElementById('date-picker');
+            if (picker) {
+                picker.value = savedDate || new Date().toISOString().split('T')[0];
+            }
+            dailyBtn.click();  // Will trigger view switch and dispatchEvent
+        } else {
+            weeklyBtn.click(); // Default
+        }
     });
 
     document.querySelectorAll('.day-link').forEach(link => {
