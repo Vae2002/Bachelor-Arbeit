@@ -10,7 +10,31 @@
     <!-- Diet Info -->
     <h3 class="mt-5 mb-3 text-center">Today's Diet Breakdown</h3>
 
+    {% macro progress_color(key, percent) %}
+        {% if key == 'protein' %}
+            {% if percent < 50 %}
+                {{ '#f8d7da' }}  {# Red (low protein) #}
+            {% elif percent < 80 %}
+                {{ '#fff3cd' }}  {# Yellow #}
+            {% else %}
+                {{ '#d1e7dd' }}  {# Green #}
+            {% endif %}
+        {% else %}
+            {% if percent < 50 %}
+                {{ '#d1e7dd' }}  {# Green (low fat/carbs) #}
+            {% elif percent < 80 %}
+                {{ '#fff3cd' }}  {# Yellow #}
+            {% else %}
+                {{ '#f8d7da' }}  {# Red (high fat/carbs) #}
+            {% endif %}
+        {% endif %}
+    {% endmacro %}
+
     <!-- CALORIES: Separate Card Row -->
+    {% set cal_percent = (totals['calories'] / targets['calories'] * 100) if targets['calories'] else 0 %}
+    {% set cal_color = progress_color('calories', cal_percent) %}
+    {% set cal_bg_style = 'background: linear-gradient(to right, ' ~ cal_color ~ ' ' ~ cal_percent|round(0) ~ '%, #f8f9fa ' ~ cal_percent|round(0) ~ '%);' %}
+
     <div class="row justify-content-center text-center mb-4">
         <div class="col-md-4 mb-3">
             <div class="card shadow-sm border-primary">
@@ -29,7 +53,7 @@
             </div>
         </div>
         <div class="col-md-4 mb-3">
-            <div class="card shadow-sm border-danger">
+            <div class="card shadow-sm" style="{{ cal_bg_style }}">
                 <div class="card-body">
                     <h5 class="card-title text-danger">Calories Remaining</h5>
                     <p class="fs-5"><strong>{{ remaining['calories']|round(1) }} kcal</strong></p>
@@ -39,28 +63,32 @@
     </div>
 
     <!-- MACRONUTRIENTS: One Card Row Each -->
-    {% for label, key, unit in [('Protein', 'protein', 'g'), ('Fats', 'fat', 'g'), ('Carbs', 'carbs', 'g')] %}
-    <div class="row justify-content-center text-center mb-3">
-        <div class="col-md-10">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <h5 class="card-title">{{ label }}</h5>
-                    <div class="row">
-                        <div class="col">
-                            <p><strong>Target:</strong> {{ targets[key] or '—' }} {{ unit }}</p>
-                        </div>
-                        <div class="col text-success">
-                            <p><strong>Consumed:</strong> {{ totals[key]|round(1) }} {{ unit }}</p>
-                        </div>
-                        <div class="col text-danger">
-                            <p><strong>Remaining:</strong> {{ remaining[key]|round(1) }} {{ unit }}</p>
-                        </div>
+    <div class="row justify-content-center text-center mb-4">
+        {% for label, key, unit in [('Protein', 'protein', 'g'), ('Fats', 'fat', 'g'), ('Carbs', 'carbs', 'g')] %}
+            {% set percent = (totals[key] / targets[key] * 100) if targets[key] else 0 %}
+            {% set color = progress_color(key, percent) %}
+            {% set bg_style = 'background: linear-gradient(to right, ' ~ color ~ ' ' ~ percent|round(0) ~ '%, #f8f9fa ' ~ percent|round(0) ~ '%);' %}
+            
+            <div class="col-md-4 mb-3">
+                <div class="card shadow-sm h-100" style="{{ bg_style }}">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ label }}</h5>
+                        <hr>
+                        <p><strong>Target:</strong> {{ targets[key] or '—' }} {{ unit }}</p>
+                        <p><strong>Consumed:</strong> {{ totals[key]|round(1) }} {{ unit }}</p>
+                        <p><strong>Remaining:</strong> {{ remaining[key]|round(1) }} {{ unit }}</p>
                     </div>
                 </div>
             </div>
-        </div>
+        {% endfor %}
     </div>
-    {% endfor %}
+
+
+
+
+
+
+
 
     <!-- Today's Meals -->
     <h3 class="mt-5 mb-3 text-center">Today's Meal Plan</h3>
