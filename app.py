@@ -4,7 +4,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash, jso
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from models import db, User, Member, GroceryItem, MealPlan, Pantry
 from forms import MemberForm
 import urllib.parse
@@ -356,32 +356,99 @@ def change_password():
 @app.route('/')
 @login_required
 def home():
-    from datetime import date
     today = date.today()
 
-    # Fetch today's meals
-    meals = MealPlan.query.filter_by(user_id=current_user.id, date=today).all()
-    meal_data = {
-        f"{meal.date}_{meal.meal_type}": {
+    # Member selection logic
+    members = Member.query.filter_by(user_id=current_user.id).all()
+    selected_member_id = request.args.get('member_id', type=int)
+
+    selected_member = None
+    if selected_member_id:
+        selected_member = Member.query.filter_by(id=selected_member_id, user_id=current_user.id).first()
+    elif members:
+        selected_member = members[0]
+
+    member_pairs = [(m, {'id': m.id, 'name': m.name}) for m in members]
+
+    # Meals for today only
+    meals = MealPlan.query.filter_by(
+        user_id=current_user.id,
+        date=today
+    )
+
+    if selected_member:
+        meals = meals.filter_by(member_id=selected_member.id)
+
+    meals = meals.all()
+
+    # Structure data for template
+    meal_data = {}
+    totals = {"calories": 0, "protein": 0.0, "fat": 0.0, "carbs": 0.0}
+
+    for meal in meals:
+        key = f"{meal.date}_{meal.meal_type}"
+        try:
+            macro_data = ast.literal_eval(meal.recipe_macro or "[]")
+        except Exception as e:
+            macro_data = []
+            print(f"Macro parsing failed for {meal.recipe_name}: {e}")
+
+        # Extract totals
+        for nutrient, value in macro_data:
+            lower = nutrient.lower()
+            if "protein" in lower:
+                totals["protein"] += float(value)
+            elif "fat" in lower:
+                totals["fat"] += float(value)
+            elif "carb" in lower and not "fiber" in lower and not "net" in lower and not "sugar" in lower:
+                totals["carbs"] += float(value)
+
+        try:
+            totals["calories"] += float(meal.recipe_calories or 0)
+        except:
+            pass
+
+        meal_data[key] = {
             'name': meal.recipe_name,
             'calories': meal.recipe_calories,
-            'macro': meal.recipe_macro,
+            'macro': macro_data,  # actual list of tuples
             'micro': meal.recipe_micro
-        } for meal in meals
-    }
+        }
 
-    # Get selected member (first one if not specified)
+
+    # Get member nutrient targets
     members = Member.query.filter_by(user_id=current_user.id).all()
     selected_member = members[0] if members else None
 
-    diet_info_member = {
-        'daily_calories': selected_member.daily_calories if selected_member else None,
-        'protein_grams': selected_member.protein_grams if selected_member else None,
-        'fat_grams': selected_member.fat_grams if selected_member else None,
-        'carbs_grams': selected_member.carbs_grams if selected_member else None,
+    targets = {
+        "calories": selected_member.daily_calories if selected_member else 0,
+        "protein": selected_member.protein_grams if selected_member else 0,
+        "fat": selected_member.fat_grams if selected_member else 0,
+        "carbs": selected_member.carbs_grams if selected_member else 0
     }
 
-    return render_template('home.html', meal_data=meal_data, diet_info_member=diet_info_member, current_date=today)
+    # Compute remaining values (target - consumed)
+    remaining = {
+        k: max(targets[k] - totals[k], 0) for k in targets
+    }
+
+    return render_template(
+        'home.html',
+        meal_data=meal_data,
+        current_date=today,
+        targets=targets,
+        totals=totals,
+        remaining=remaining,
+        members=members,
+        member_pairs=member_pairs,
+        selected_member=selected_member,
+        diet_info_member={
+            'daily_calories': selected_member.daily_calories if selected_member else None,
+            'protein_grams': selected_member.protein_grams if selected_member else None,
+            'fat_grams': selected_member.fat_grams if selected_member else None,
+            'carbs_grams': selected_member.carbs_grams if selected_member else None,
+        }
+    )
 
 # =================== DIET CALCULATOR ===================
 
