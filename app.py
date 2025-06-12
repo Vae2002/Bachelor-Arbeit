@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from models import db, User, Member, GroceryItem, MealPlan, Pantry
 from forms import MemberForm
 import urllib.parse
+import ast
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -606,6 +607,62 @@ IMAGE_FOLDER_PATH = os.path.join(BASE_DIR, 'Food Images')
 
 df = pd.read_csv(RECIPES_CSV_PATH)
 
+# === ALLERGEN MAPPING ===
+ALLERGEN_INGREDIENT_MAP = {
+    'Milk': ['milk', 'cheese', 'butter', 'cream', 'yogurt', 'evaporated milk', 'condensed milk'],
+    'Eggs': ['egg', 'eggs'],
+    'Peanuts': ['peanut', 'groundnut'],
+    'Tree Nuts': ['almond', 'walnut', 'cashew', 'pecan', 'pistachio', 'hazelnut'],
+    'Soy': ['soy', 'soybean', 'soy milk', 'tofu'],
+    'Wheat': ['wheat', 'flour', 'bread', 'breadcrumbs', 'pasta'],
+    'Fish': ['salmon', 'tuna', 'cod', 'mackerel', 'anchovy'],
+    'Shellfish': ['shrimp', 'crab', 'lobster', 'scallop', 'clam'],
+    'Sesame': ['sesame', 'tahini']
+}
+
+DIETARY_RESTRICTION_INGREDIENT_MAP = {
+    'vegetarian': [
+        'chicken', 'beef', 'pork', 'fish', 'shrimp', 'anchovy', 'gelatin',
+        'duck', 'lamb', 'bacon', 'sausage', 'meat', 'turkey'
+    ],
+    'vegan': [
+        'milk', 'cheese', 'butter', 'cream', 'yogurt', 'egg', 'honey',
+        'chicken', 'beef', 'pork', 'fish', 'shrimp', 'anchovy', 'gelatin',
+        'duck', 'lamb', 'bacon', 'sausage', 'meat', 'turkey', 'whey', 'casein'
+    ],
+    'gluten_free': [
+        'wheat', 'flour', 'bread', 'pasta', 'barley', 'rye', 'spelt', 'semolina', 'breadcrumbs'
+    ],
+    'halal': [
+        'pork', 'bacon', 'ham', 'gelatin (non-halal)', 'lard', 'alcohol', 'rum', 'wine', 'beer'
+    ],
+}
+
+DIETARY_RESTRICTION_THRESHOLDS = {
+    'low_carb': {
+        'carbs': {'max': 20},
+        'net carbs': {'max': 20}
+    },
+    'low_sugar': {
+        'sugar': {'max': 5}
+    },
+    'low_fat': {
+        'fats': {'max': 10},
+        'saturated fat': {'max': 3}
+    },
+    'low_sodium': {
+        'sodium': {'max': 140}
+    },
+    'high_protein': {
+        'protein': {'min': 15}
+    },
+    'low_cholesterol': {
+        'cholesterol': {'max': 20}
+    }
+}
+
+
+
 # Load CSV into DataFrame using pandas
 def load_recipes():
     recipes = []
@@ -698,6 +755,50 @@ def load_recipes():
 # Pre-load recipes into memory
 recipes = load_recipes()
 
+def ingredient_contains_allergens(ingredients_list, allergy_list):
+    ingredients_str = " ".join(ingredients_list).lower()
+    for allergen in allergy_list:
+        allergen = allergen.lower()
+        if allergen in ingredients_str:
+            return True
+    return False
+
+def filter_recipes_by_dietary_restrictions(recipes, dietary_restrictions):
+    filtered = []
+    
+    for recipe in recipes:
+        ingredients_str = " ".join(ast.literal_eval(recipe.get('Ingredients', '[]'))).lower()
+        nutrients = {
+            nutrient.lower(): value
+            for group in ['Macro_Nutrients', 'Micro_Nutrients']
+            for nutrient, value in recipe.get(group, [])
+        }
+
+        exclude = False
+
+        for restriction in dietary_restrictions:
+            # Ingredient-based exclusions
+            restricted_terms = DIETARY_RESTRICTION_INGREDIENT_MAP.get(restriction, [])
+            if any(term in ingredients_str for term in restricted_terms):
+                exclude = True
+                break
+
+            # Threshold-based checks
+            thresholds = DIETARY_RESTRICTION_THRESHOLDS.get(restriction, {})
+            for nutrient, rules in thresholds.items():
+                actual_value = nutrients.get(nutrient.lower(), 0)
+                if 'max' in rules and actual_value > rules['max']:
+                    exclude = True
+                    break
+                if 'min' in rules and actual_value < rules['min']:
+                    exclude = True
+                    break
+
+        if not exclude:
+            filtered.append(recipe)
+
+    return filtered
+
 # Helper function for pagination
 def paginate(items, page, per_page=9):
     start = (page - 1) * per_page
@@ -758,9 +859,15 @@ def recipe_lookup():
             if name_match or ingredient_match:
                 search_results.append(recipe)
 
-    # If no search terms, show all recipes, but paginated
     if not search_results:
         search_results = recipes
+
+    # Filter out recipes with allergens (if user is logged in and a member is selected)
+    if current_user.is_authenticated:
+        member_id = request.args.get("member_id", type=int)
+        member = Member.query.filter_by(id=member_id, user_id=current_user.id).first()
+        allergy_list = json.loads(member.allergies) if member and member.allergies else []
+        search_results = [r for r in search_results if not ingredient_contains_allergens(r['ingredients'], allergy_list)]
 
     # Paginate the results
     paginated_recipes = paginate(search_results, page)
