@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Home | Kitchen App{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="text-center mb-4">Welcome to Kitchen App</h1>
+    <p class="text-center text-muted">Here's your personalized summary for today, {{ current_user.username }}.</p>
+
+    <!-- Diet Info -->
+    <h3 class="mt-5 mb-3 text-center">Your Diet Information</h3>
+    <div class="row justify-content-center text-center">
+        {% set diet_info = [
+            ('Daily Calories', diet_info_member.daily_calories if diet_info_member else None, 'kcal'),
+            ('Protein', diet_info_member.protein_grams if diet_info_member else None, 'g'),
+            ('Fats', diet_info_member.fat_grams if diet_info_member else None, 'g'),
+            ('Carbs', diet_info_member.carbs_grams if diet_info_member else None, 'g')
+        ] %}
+        {% for label, value, unit in diet_info %}
+        <div class="col-md-3 mb-3">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h6 class="card-title"><strong>{{ label }}</strong></h6>
+                    <p class="card-text fs-5">{{ value or '—' }} {{ unit }}</p>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Today's Meals -->
+    <h3 class="mt-5 mb-3 text-center">Today's Meal Plan</h3>
+    {% set meals = ['breakfast', 'lunch', 'snack', 'dinner', 'extra'] %}
+    {% set today = current_date or macros.datetime.utcnow().date().isoformat() %}
+    {% set total_calories = namespace(value=0) %}
+
+    <div class="row justify-content-center">
+        {% for meal in meals %}
+            {% set meal_key = today ~ '_' ~ meal %}
+            {% set meal_info = meal_data.get(meal_key, {}) %}
+            {% set cal = meal_info.get('calories', 0) | int %}
+            {% set total_calories.value = total_calories.value + cal %}
+            
+            <div class="col-md-4 mb-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                        <h5 class="card-title text-capitalize">{{ meal }}</h5>
+                        <p class="card-text">
+                            <strong>{{ meal_info.get('name', '—') }}</strong><br>
+                            <span class="text-muted small">Calories: {{ cal if cal else '—' }} kcal</span><br>
+                            <span class="text-muted small">Macro: {{ meal_info.get('macro', '') }}</span><br>
+                            <span class="text-muted small">Micro: {{ meal_info.get('micro', '') }}</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    <div class="alert alert-info text-center mt-4">
+        <h5>Total Calories Consumed Today: {{ total_calories.value }} kcal</h5>
+    </div>
+
+    <!-- Navigation Buttons -->
+    <div class="text-center mt-5">
+        <a href="{{ url_for('meal_planner') }}" class="btn btn-primary me-2">Go to Weekly Planner</a>
+        <a href="{{ url_for('grocery') }}" class="btn btn-success me-2">Manage Grocery List</a>
+        <a href="{{ url_for('diet_calculator') }}" class="btn btn-outline-secondary">Diet Calculator</a>
+    </div>
+</div>
+{% endblock %}

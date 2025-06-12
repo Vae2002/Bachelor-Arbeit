@@ -356,7 +356,32 @@ def change_password():
 @app.route('/')
 @login_required
 def home():
-    return render_template('index.html', user=current_user)
+    from datetime import date
+    today = date.today()
+
+    # Fetch today's meals
+    meals = MealPlan.query.filter_by(user_id=current_user.id, date=today).all()
+    meal_data = {
+        f"{meal.date}_{meal.meal_type}": {
+            'name': meal.recipe_name,
+            'calories': meal.recipe_calories,
+            'macro': meal.recipe_macro,
+            'micro': meal.recipe_micro
+        } for meal in meals
+    }
+
+    # Get selected member (first one if not specified)
+    members = Member.query.filter_by(user_id=current_user.id).all()
+    selected_member = members[0] if members else None
+
+    diet_info_member = {
+        'daily_calories': selected_member.daily_calories if selected_member else None,
+        'protein_grams': selected_member.protein_grams if selected_member else None,
+        'fat_grams': selected_member.fat_grams if selected_member else None,
+        'carbs_grams': selected_member.carbs_grams if selected_member else None,
+    }
+
+    return render_template('home.html', meal_data=meal_data, diet_info_member=diet_info_member, current_date=today)
 
 # =================== DIET CALCULATOR ===================
 
