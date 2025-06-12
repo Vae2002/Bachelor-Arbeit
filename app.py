@@ -1243,6 +1243,14 @@ def save_to_meal_planner():
         flash(f"{meal.capitalize()} on {date} added.", "success")
 
     db.session.commit()
+
+    # Detect if the request came from fetch (not a normal form submission)
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({
+            'success': True,
+            'message': f"{meal.capitalize()} on {date} saved.",
+        })
+
     return redirect(url_for('meal_planner', member_id=member_id))
 
 
