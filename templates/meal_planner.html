@@ -55,7 +55,7 @@
 
             <div class="row g-4">
                 {% for day in days %}
-                {% if loop.index == 5 %}</div><div class="row g-4 mt-4">{% endif %}
+                {% if loop.index == 5 %}</div><div class="row g-4 mt-4 justify-content-center">{% endif %}
                 <div class="col-md-3">
                     <label class="form-label">
                         <strong>
@@ -112,9 +112,11 @@
 
                 </div>
                 {% endfor %}
-                <!-- Weekly View Buttons -->
-                <div class="col-md-3 d-flex flex-column align-items-end gap-2">
-                    <br><br><br><br><br><br><br><br>
+            </div>
+            
+            <!-- Weekly View Buttons -->
+            <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1050;">
+                <div class="d-flex flex-column align-items-end gap-2">
                     <button type="button" class="btn btn-secondary">Edit</button>
                     <button type="button" class="btn btn-info">Email</button>
                     <button type="button" class="btn btn-dark" onclick="window.print()">Print</button>
@@ -124,12 +126,11 @@
 
         <!-- Daily View -->
         <div id="daily-view" style="display: none;">
-            <div id="daily-breakdown" class="mt-5"></div>
-            
             <div class="text-center my-4">
                 <h3>Select a Date</h3>
                 <input type="date" id="date-picker" class="form-control w-auto mx-auto">
             </div>
+            <div id="daily-breakdown" class="mt-5"></div>
 
             <div id="daily-content" class="mt-4">
                 <p class="text-center text-muted">Select a day to view meals</p>
@@ -339,7 +340,7 @@
             }).join('');
 
             document.getElementById("daily-breakdown").innerHTML = `
-                <h3 class="mt-5 mb-3 text-center">Diet Breakdown for Selected Day</h3>
+                <h3 class="mt-5 mb-3 text-center">Diet Breakdown</h3>
                 <div class="row justify-content-center text-center mb-4">
                     <div class="col-md-4 mb-3">
                         <div class="card shadow-sm border-primary">
@@ -373,7 +374,7 @@
             `;
 
         });
-        
+
         const savedView = localStorage.getItem('mealPlannerView');
         if (savedView === 'daily') {
             const savedDate = localStorage.getItem('selectedDate');
