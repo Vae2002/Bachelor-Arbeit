@@ -10,16 +10,36 @@ class MemberForm(FlaskForm):
     carbs_grams = FloatField('Carbs (g)')
 
     cuisines = SelectMultipleField('Cuisines', choices=[
-        ('Italian', 'Italian'), ('Chinese', 'Chinese')
+        ('asian', 'Asian'),
+        ('italian', 'Italian'),
+        ('mexican', 'Mexican'),
+        ('indian', 'Indian'),
+        ('mediterranean', 'Mediterranean')
     ])
 
     allergies = SelectMultipleField('Allergies', choices=[
-        ('Peanuts', 'Peanuts'), ('Dairy', 'Dairy')
+        ('milk', 'Milk'),
+        ('eggs', 'Eggs'),
+        ('peanuts', 'Peanuts'),
+        ('tree_nuts', 'Tree Nuts'),
+        ('soy', 'Soy'),
+        ('wheat', 'Wheat'),
+        ('fish', 'Fish'),
+        ('shellfish', 'Shellfish'),
+        ('sesame', 'Sesame')
     ])
 
     dietary_restrictions = SelectMultipleField('Dietary Restrictions', choices=[
-        ('Low Salt', 'Low Salt'), ('Low Sugar', 'Low Sugar'), 
-        ('Low Fat', 'Low Fat'), ('Gluten Free', 'Gluten Free')
+        ('vegetarian', 'Vegetarian'),
+        ('vegan', 'Vegan'),
+        ('gluten_free', 'Gluten-Free'),
+        ('low_carb', 'Low Carb'),
+        ('low_sugar', 'Low Sugar'),
+        ('low_fat', 'Low Fat'),
+        ('low_sodium', 'Low Sodium'),
+        ('high_protein', 'High Protein'),
+        ('low_cholesterol', 'Low Cholestrol'),
+        ('halal', 'Halal')
     ])
 
     submit = SubmitField('Add Member')

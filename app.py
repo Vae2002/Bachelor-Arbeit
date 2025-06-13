@@ -4,10 +4,11 @@ from flask import Flask, render_template, request, redirect, url_for, flash, jso
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from models import db, User, Member, GroceryItem, MealPlan, Pantry
 from forms import MemberForm
 import urllib.parse
+import ast
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -196,8 +197,11 @@ def edit_profile():
                 filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                 file.save(filepath)
 
-                # Optionally remove old profile pic
-                if user.profile_pic and os.path.exists(os.path.join(app.config['UPLOAD_FOLDER'], user.profile_pic)):
+                if (
+                    user.profile_pic and
+                    user.profile_pic != 'default.jpg' and
+                    os.path.exists(os.path.join(app.config['UPLOAD_FOLDER'], user.profile_pic))
+                ):
                     os.remove(os.path.join(app.config['UPLOAD_FOLDER'], user.profile_pic))
 
                 user.profile_pic = filename
@@ -352,7 +356,95 @@ def change_password():
 @app.route('/')
 @login_required
 def home():
-    return render_template('index.html', user=current_user)
+    today = date.today()
+
+    # Member selection logic
+    members = Member.query.filter_by(user_id=current_user.id).all()
+    selected_member_id = request.args.get('member_id', type=int)
+
+    selected_member = None
+
+    if selected_member_id:
+        selected_member = Member.query.filter_by(id=selected_member_id, user_id=current_user.id).first()
+    else:
+        selected_member = members[0] if members else None
+
+    member_pairs = [(m, {'id': m.id, 'name': m.name}) for m in members]
+
+    # Meals for today only
+    meals = MealPlan.query.filter_by(
+        user_id=current_user.id,
+        date=today
+    )
+
+    if selected_member:
+        meals = meals.filter_by(member_id=selected_member.id)
+
+    meals = meals.all()
+
+    # Structure data for template
+    meal_data = {}
+    totals = {"calories": 0, "protein": 0.0, "fat": 0.0, "carbs": 0.0}
+
+    for meal in meals:
+        key = f"{meal.date}_{meal.meal_type}"
+        try:
+            macro_data = ast.literal_eval(meal.recipe_macro or "[]")
+        except Exception as e:
+            macro_data = []
+            print(f"Macro parsing failed for {meal.recipe_name}: {e}")
+
+        # Extract totals
+        for nutrient, value in macro_data:
+            lower = nutrient.lower()
+            if "protein" in lower:
+                totals["protein"] += float(value)
+            elif "fat" in lower:
+                totals["fat"] += float(value)
+            elif "carb" in lower and not "fiber" in lower and not "net" in lower and not "sugar" in lower:
+                totals["carbs"] += float(value)
+
+        try:
+            totals["calories"] += float(meal.recipe_calories or 0)
+        except:
+            pass
+
+        meal_data[key] = {
+            'name': meal.recipe_name,
+            'calories': meal.recipe_calories,
+            'macro': macro_data,  # actual list of tuples
+            'micro': meal.recipe_micro
+        }
+
+    targets = {
+        "calories": selected_member.daily_calories if selected_member else 0,
+        "protein": selected_member.protein_grams if selected_member else 0,
+        "fat": selected_member.fat_grams if selected_member else 0,
+        "carbs": selected_member.carbs_grams if selected_member else 0
+    }
+
+    # Compute remaining values (target - consumed)
+    remaining = {
+        k: max(targets[k] - totals[k], 0) for k in targets
+    }
+
+    return render_template(
+        'home.html',
+        meal_data=meal_data,
+        current_date=today,
+        targets=targets,
+        totals=totals,
+        remaining=remaining,
+        members=members,
+        member_pairs=member_pairs,
+        selected_member=selected_member,
+        diet_info_member={
+            'daily_calories': selected_member.daily_calories if selected_member else None,
+            'protein_grams': selected_member.protein_grams if selected_member else None,
+            'fat_grams': selected_member.fat_grams if selected_member else None,
+            'carbs_grams': selected_member.carbs_grams if selected_member else None,
+        }
+    )
 
 # =================== DIET CALCULATOR ===================
 
@@ -540,15 +632,13 @@ def add_item():
 
     return redirect(url_for('grocery'))
 
-@app.route('/delete/<int:item_id>')
+@app.route('/delete_grocery/<int:item_id>')
 @login_required
-def delete_item(item_id):
+def delete_grocery_item(item_id):
     item = GroceryItem.query.get_or_404(item_id)
-
     if item.user_id != current_user.id:
         flash("Unauthorized action!", "danger")
         return redirect(url_for('grocery'))
-
     db.session.delete(item)
     db.session.commit()
     return redirect(url_for('grocery'))
@@ -604,6 +694,62 @@ BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 IMAGE_FOLDER_PATH = os.path.join(BASE_DIR, 'Food Images')
 
 df = pd.read_csv(RECIPES_CSV_PATH)
+
+# === ALLERGEN MAPPING ===
+ALLERGEN_INGREDIENT_MAP = {
+    'Milk': ['milk', 'cheese', 'butter', 'cream', 'yogurt', 'evaporated milk', 'condensed milk'],
+    'Eggs': ['egg', 'eggs'],
+    'Peanuts': ['peanut', 'groundnut'],
+    'Tree Nuts': ['almond', 'walnut', 'cashew', 'pecan', 'pistachio', 'hazelnut'],
+    'Soy': ['soy', 'soybean', 'soy milk', 'tofu'],
+    'Wheat': ['wheat', 'flour', 'bread', 'breadcrumbs', 'pasta'],
+    'Fish': ['salmon', 'tuna', 'cod', 'mackerel', 'anchovy'],
+    'Shellfish': ['shrimp', 'crab', 'lobster', 'scallop', 'clam'],
+    'Sesame': ['sesame', 'tahini']
+}
+
+DIETARY_RESTRICTION_INGREDIENT_MAP = {
+    'vegetarian': [
+        'chicken', 'beef', 'pork', 'fish', 'shrimp', 'anchovy', 'gelatin',
+        'duck', 'lamb', 'bacon', 'sausage', 'meat', 'turkey'
+    ],
+    'vegan': [
+        'milk', 'cheese', 'butter', 'cream', 'yogurt', 'egg', 'honey',
+        'chicken', 'beef', 'pork', 'fish', 'shrimp', 'anchovy', 'gelatin',
+        'duck', 'lamb', 'bacon', 'sausage', 'meat', 'turkey', 'whey', 'casein'
+    ],
+    'gluten_free': [
+        'wheat', 'flour', 'bread', 'pasta', 'barley', 'rye', 'spelt', 'semolina', 'breadcrumbs'
+    ],
+    'halal': [
+        'pork', 'bacon', 'ham', 'gelatin (non-halal)', 'lard', 'alcohol', 'rum', 'wine', 'beer'
+    ],
+}
+
+DIETARY_RESTRICTION_THRESHOLDS = {
+    'low_carb': {
+        'carbs': {'max': 20},
+        'net carbs': {'max': 20}
+    },
+    'low_sugar': {
+        'sugar': {'max': 5}
+    },
+    'low_fat': {
+        'fats': {'max': 10},
+        'saturated fat': {'max': 3}
+    },
+    'low_sodium': {
+        'sodium': {'max': 140}
+    },
+    'high_protein': {
+        'protein': {'min': 15}
+    },
+    'low_cholesterol': {
+        'cholesterol': {'max': 20}
+    }
+}
+
+
 
 # Load CSV into DataFrame using pandas
 def load_recipes():
@@ -697,6 +843,50 @@ def load_recipes():
 # Pre-load recipes into memory
 recipes = load_recipes()
 
+def ingredient_contains_allergens(ingredients_list, allergy_list):
+    ingredients_str = " ".join(ingredients_list).lower()
+    for allergen in allergy_list:
+        allergen = allergen.lower()
+        if allergen in ingredients_str:
+            return True
+    return False
+
+def filter_recipes_by_dietary_restrictions(recipes, dietary_restrictions):
+    filtered = []
+    
+    for recipe in recipes:
+        ingredients_str = " ".join(ast.literal_eval(recipe.get('Ingredients', '[]'))).lower()
+        nutrients = {
+            nutrient.lower(): value
+            for group in ['Macro_Nutrients', 'Micro_Nutrients']
+            for nutrient, value in recipe.get(group, [])
+        }
+
+        exclude = False
+
+        for restriction in dietary_restrictions:
+            # Ingredient-based exclusions
+            restricted_terms = DIETARY_RESTRICTION_INGREDIENT_MAP.get(restriction, [])
+            if any(term in ingredients_str for term in restricted_terms):
+                exclude = True
+                break
+
+            # Threshold-based checks
+            thresholds = DIETARY_RESTRICTION_THRESHOLDS.get(restriction, {})
+            for nutrient, rules in thresholds.items():
+                actual_value = nutrients.get(nutrient.lower(), 0)
+                if 'max' in rules and actual_value > rules['max']:
+                    exclude = True
+                    break
+                if 'min' in rules and actual_value < rules['min']:
+                    exclude = True
+                    break
+
+        if not exclude:
+            filtered.append(recipe)
+
+    return filtered
+
 # Helper function for pagination
 def paginate(items, page, per_page=9):
     start = (page - 1) * per_page
@@ -757,9 +947,15 @@ def recipe_lookup():
             if name_match or ingredient_match:
                 search_results.append(recipe)
 
-    # If no search terms, show all recipes, but paginated
     if not search_results:
         search_results = recipes
+
+    # Filter out recipes with allergens (if user is logged in and a member is selected)
+    if current_user.is_authenticated:
+        member_id = request.args.get("member_id", type=int)
+        member = Member.query.filter_by(id=member_id, user_id=current_user.id).first()
+        allergy_list = json.loads(member.allergies) if member and member.allergies else []
+        search_results = [r for r in search_results if not ingredient_contains_allergens(r['ingredients'], allergy_list)]
 
     # Paginate the results
     paginated_recipes = paginate(search_results, page)
@@ -1009,13 +1205,49 @@ def recipe_detail(recipe_name):
 @app.route('/save_to_meal_planner', methods=['POST'])
 @login_required
 def save_to_meal_planner():
-    recipe_name = request.form['recipe_name']
-    recipe_calories = request.form['recipe_calories']
-    recipe_macro = request.form['recipe_macro']
-    recipe_micro = request.form['recipe_micro']
-    meal = request.form['meal']
-    date_str = request.form['date']
-    member_id = request.form.get('member_id', type=int) 
+    # Detect if it's a weekly (bulk) save
+    # bulk_meal_keys = [key for key in request.form if key.startswith("meal_") and key.endswith("_name")]
+    recipe_name = request.form.get('recipe_name')
+    recipe_calories = request.form.get('recipe_calories')
+    recipe_macro = request.form.get('recipe_macro')
+    recipe_micro = request.form.get('recipe_micro')
+    meal = request.form.get('meal')
+    date_str = request.form.get('date')
+    member_id = request.form.get('member_id', type=int)
+
+    deleted_meals_json = request.form.get("confirmed_deleted_meals")
+    if deleted_meals_json:
+        try:
+            deleted_meals = json.loads(deleted_meals_json)
+        except Exception as e:
+            print("Error parsing deleted meals JSON:", e)
+            deleted_meals = []
+
+        for entry in deleted_meals:
+            date_str = entry.get("date")
+            meal_type = entry.get("meal_type")
+
+            try:
+                date = datetime.strptime(date_str, "%Y-%m-%d").date()
+            except Exception:
+                continue
+
+            existing = MealPlan.query.filter_by(
+                user_id=current_user.id,
+                date=date,
+                meal_type=meal_type,
+                member_id=member_id
+            ).first()
+
+            if existing:
+                print(f"Deleting {meal_type} on {date}")
+                db.session.delete(existing)
+            else:
+                print(f"No entry to delete for {meal_type} on {date}")
+
+        db.session.commit()
+        flash("Selected meals deleted.", "success")
+        return redirect(url_for("meal_planner", member_id=member_id))
 
     try:
         date = datetime.strptime(date_str, "%Y-%m-%d").date()
@@ -1029,24 +1261,26 @@ def save_to_meal_planner():
         existing.recipe_calories = recipe_calories
         existing.recipe_macro = recipe_macro
         existing.recipe_micro = recipe_micro
-        if member_id:
-            existing.member_id = member_id  
+        existing.member_id = member_id
         flash(f"{meal.capitalize()} on {date} updated.", "success")
     else:
-        new_entry = MealPlan(
+        db.session.add(MealPlan(
             user_id=current_user.id,
-            member_id=member_id,  # <-- link to member
+            member_id=member_id,
             date=date,
             meal_type=meal,
             recipe_name=recipe_name,
             recipe_calories=recipe_calories,
             recipe_macro=recipe_macro,
             recipe_micro=recipe_micro
-        )
-        db.session.add(new_entry)
+        ))
         flash(f"{meal.capitalize()} on {date} added.", "success")
 
     db.session.commit()
+
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({'success': True, 'message': f"{meal.capitalize()} on {date} saved."})
+
     return redirect(url_for('meal_planner', member_id=member_id))
 
 
@@ -1262,6 +1496,20 @@ def pantry():
 
     items = Pantry.query.filter_by(user_id=current_user.id).all()
     return render_template('pantry.html', items=items)
+
+@app.route('/delete_pantry/<int:item_id>', methods=['POST'])
+@login_required
+def delete_pantry_item(item_id):
+    item = Pantry.query.get_or_404(item_id)
+    if item.user_id != current_user.id:
+        flash("Unauthorized action.", "danger")
+        return redirect(url_for('pantry'))
+
+    db.session.delete(item)
+    db.session.commit()
+    flash("Item deleted successfully.", "success")
+    return redirect(url_for('pantry'))
+
 
 # ------------------ INIT DB ------------------ #
 if __name__ == '__main__':

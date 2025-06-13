@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="container mt-4">
-    <h2 class="text-center mb-4">Weekly Meal Planner</h2>
+    <h2 class="text-center mb-4">Meal Planner</h2>
 
     <form method="POST" action="{{ url_for('save_to_meal_planner') }}">
         {{ form.csrf_token() if form and form.csrf_token }}
@@ -17,31 +17,31 @@
             </div>
         </div>
 
-        <!-- Diet Info -->
-        <div class="row justify-content-center">
-            <h3 class="text-center mb-3">Diet Information</h3>
-            {% set diet_info = [
-                ('Daily Calories', diet_info_member.daily_calories if diet_info_member else None, ''),
-                ('Protein', diet_info_member.protein_grams if diet_info_member else None, 'g'),
-                ('Fats', diet_info_member.fat_grams if diet_info_member else None, 'g'),
-                ('Carbs', diet_info_member.carbs_grams if diet_info_member else None, 'g')
-            ] %}
-
-            {% for label, value, unit in diet_info %}
-                <div class="col-md-3 mb-3">
-                    <br>
-                    <div class="card text-center shadow-sm">
-                        <div class="card-body">
-                            <h6 class="card-title"><strong>{{ label }}</strong></h6>
-                            <p class="card-text fs-5">{{ value or "—" }} {{ unit }}</p>
-                        </div>
-                    </div>
-                </div>
-            {% endfor %}
-        </div>
-
         <!-- Weekly View -->
         <div id="weekly-view">
+            <!-- Diet Info -->
+            <div class="row justify-content-center">
+                <h3 class="text-center mb-3">Diet Information</h3>
+                {% set diet_info = [
+                    ('Daily Calories', diet_info_member.daily_calories if diet_info_member else None, ''),
+                    ('Protein', diet_info_member.protein_grams if diet_info_member else None, 'g'),
+                    ('Fats', diet_info_member.fat_grams if diet_info_member else None, 'g'),
+                    ('Carbs', diet_info_member.carbs_grams if diet_info_member else None, 'g')
+                ] %}
+
+                {% for label, value, unit in diet_info %}
+                    <div class="col-md-3 mb-3">
+                        <br>
+                        <div class="card text-center shadow-sm">
+                            <div class="card-body">
+                                <h6 class="card-title"><strong>{{ label }}</strong></h6>
+                                <p class="card-text fs-5">{{ value or "—" }} {{ unit }}</p>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+
             {% set days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] %}
             {% set meals = ['breakfast', 'lunch', 'snack', 'dinner', 'extra'] %}
 
@@ -55,7 +55,8 @@
 
             <div class="row g-4">
                 {% for day in days %}
-                {% if loop.index == 5 %}</div><div class="row g-4 mt-4">{% endif %}
+                <input type="hidden" name="member_id" value="{{ selected_member.id }}">
+                {% if loop.index == 5 %}</div><div class="row g-4 mt-4 justify-content-center">{% endif %}
                 <div class="col-md-3">
                     <label class="form-label">
                         <strong>
@@ -67,15 +68,30 @@
                     {% for meal in meals %}
                     {% set meal_key = day ~ '_' ~ meal %}
                     {% set meal_info = meal_data.get(meal_key, {}) %}
-                    <div class="row mb-2">
+                    <div class="row mb-2 position-relative meal-entry" data-meal="{{ meal_key }}">
                         <div class="col-7">
                             <div class="form-control bg-light small-text">
                                 <strong>{{ meal.capitalize() }}:</strong><br>
-                                {{ meal_info.get('name', '—') }}
+                                {% set meal_name = meal_info.get('name', '') %}
+                                {% if meal_name %}
+                                <a href="{{ url_for('recipe_detail', recipe_name=meal_name|urlencode) }}" class="text-decoration-none" target="_blank">
+                                    {{ meal_name }}
+                                </a>
+                                {% else %}
+                                —
+                                {% endif %}
+
+                                <input type="hidden" name="meal_{{ meal_key }}_name" value="{{ meal_info.get('name', '') }}">
+                                <input type="hidden" name="meal_{{ meal_key }}_calories" value="{{ meal_info.get('calories', '') }}">
+                                <input type="hidden" name="meal_{{ meal_key }}_macro" value="{{ meal_info.get('macro', '') }}">
+                                <input type="hidden" name="meal_{{ meal_key }}_micro" value="{{ meal_info.get('micro', '') }}">
+                                <input type="hidden" name="meal_{{ meal_key }}_date" value="{{ current_date }}">
+                                <input type="hidden" name="meal_{{ meal_key }}_type" value="{{ meal }}">
                             </div>
                         </div>
                         <div class="col-5">
                             <div class="form-control bg-light text-end small-text">
+                                <button type="button" class="btn-close position-absolute top-0 end-0 m-1 d-none delete-meal-btn" aria-label="Delete"></button>
                                 <small><strong>Calories:</strong></small><br>
                                 {% set cal = meal_info.get('calories') %}
                                 {{ cal if cal else '—' }} kcal<br>
@@ -86,15 +102,38 @@
                         </div>
                     </div>
                     {% endfor %}
+
+                    {% set total_protein = namespace(value=0) %}
+                    {% set total_fat = namespace(value=0) %}
+                    {% set total_carbs = namespace(value=0) %}
+
+                    {% for meal in meals %}
+                        {% set meal_key = day ~ '_' ~ meal %}
+                        {% set meal_info = meal_data.get(meal_key, {}) %}
+                        {% for pair in meal_info.get('macro', []) %}
+                            {% if "protein" in pair[0]|lower %}
+                                {% set total_protein.value = total_protein.value + pair[1]|float %}
+                            {% elif "fat" in pair[0]|lower %}
+                                {% set total_fat.value = total_fat.value + pair[1]|float %}
+                            {% elif "carb" in pair[0]|lower and "fiber" not in pair[0]|lower and "net" not in pair[0]|lower and "sugar" not in pair[0]|lower %}
+                                {% set total_carbs.value = total_carbs.value + pair[1]|float %}
+                            {% endif %}
+                        {% endfor %}
+                    {% endfor %}
+
                     <div class="form-control text-center bg-warning-subtle mt-3">
-                        <strong>Total Calories:</strong> {{ daily_total.value }} kcal
+                        <strong>Total Calories:</strong> {{ daily_total.value }} kcal<br>
+                        <small>Protein: {{ total_protein.value | round(1) }}g | Fats: {{ total_fat.value | round(1) }}g | Carbs: {{ total_carbs.value | round(1) }}g</small>
                     </div>
+
                 </div>
                 {% endfor %}
-                <!-- Weekly View Buttons -->
-                <div class="col-md-3 d-flex flex-column align-items-end gap-2">
-                    <br><br><br><br><br><br><br><br>
-                    <button type="button" class="btn btn-secondary">Edit</button>
+            </div>
+            
+            <!-- Weekly View Buttons -->
+            <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1050;">
+                <div class="d-flex flex-column align-items-end gap-2">
+                    <button type="button" class="btn btn-secondary" id="edit-toggle">Edit</button>
                     <button type="button" class="btn btn-info">Email</button>
                     <button type="button" class="btn btn-dark" onclick="window.print()">Print</button>
                 </div>
@@ -107,6 +146,7 @@
                 <h3>Select a Date</h3>
                 <input type="date" id="date-picker" class="form-control w-auto mx-auto">
             </div>
+            <div id="daily-breakdown" class="mt-5"></div>
 
             <div id="daily-content" class="mt-4">
                 <p class="text-center text-muted">Select a day to view meals</p>
@@ -159,6 +199,7 @@
         const mealData = {{ meal_data | tojson | safe }};
 
         weeklyBtn.addEventListener('click', () => {
+            localStorage.setItem('mealPlannerView', 'weekly');
             weeklyBtn.classList.add('active');
             dailyBtn.classList.remove('active');
             weeklyView.style.display = 'block';
@@ -166,24 +207,47 @@
         });
 
         dailyBtn.addEventListener('click', () => {
+            localStorage.setItem('mealPlannerView', 'daily');
+
+            const picker = document.getElementById('date-picker');
+            const today = new Date().toISOString().split('T')[0];
+
+            if (picker) {
+                // Default to today if empty
+                if (!picker.value) {
+                    picker.value = today;
+                }
+                localStorage.setItem('selectedDate', picker.value);  // Save the date
+            }
+
             dailyBtn.classList.add('active');
             weeklyBtn.classList.remove('active');
             weeklyView.style.display = 'none';
             dailyView.style.display = 'block';
+
+            if (picker && picker.value) {
+                picker.dispatchEvent(new Event('change'));
+            }
         });
+
 
         const daySelect = document.getElementById('day-select');
         const dailyContent = document.getElementById('daily-content');
         const datePicker = document.getElementById('date-picker');
 
         datePicker?.addEventListener('change', function () {
+            localStorage.setItem('selectedDate', this.value);
             const selectedDate = this.value;  // Format: "YYYY-MM-DD"
             const mealData = {{ meal_data | tojson | safe }};
             const dateMeals = Object.entries(mealData)
                 .filter(([key, _]) => key.startsWith(selectedDate));
 
             let total = 0;
+            let totalProtein = 0;
+            let totalFat = 0;
+            let totalCarbs = 0;
             let content = ``;
+
 
             if (dateMeals.length === 0) {
                 content += `<p class="text-center text-muted">No meals found for this date.</p>`;
@@ -193,9 +257,33 @@
                     const entry = mealData[key] || {};
                     const name = entry.name || '—';
                     const calories = entry.calories || 0;
-                    const macro = entry.macro || '';
-                    const micro = entry.micro || '';
+                    let macro = entry.macro || '';
+                    try {
+                        macro = JSON.parse(macro.replaceAll("(", "[").replaceAll(")", "]").replaceAll("'", '"'));
+                    } catch (e) {
+                        macro = [];
+                    }
+
+                    let micro = entry.micro || '';
+                    try {
+                        micro = JSON.parse(micro.replaceAll("(", "[").replaceAll(")", "]").replaceAll("'", '"'));
+                    } catch (e) {
+                        micro = [];
+                    }
+
                     total += parseInt(calories) || 0;
+                    
+                    console.log(macro)
+
+                    if (Array.isArray(macro)) {
+                        macro.forEach(([key, value]) => {
+                            const k = key.toLowerCase();
+                            const v = parseFloat(value);
+                            if (k.includes("protein")) totalProtein += v;
+                            if (k.includes("fat")) totalFat += v;
+                            if (k.includes("carb")) totalCarbs += v;
+                        });
+                    }
 
                     content += `
                         <div class="card my-3 shadow-sm">
@@ -210,10 +298,110 @@
                 });
             }
 
-            content += `<div class="alert alert-info text-center"><strong>Total:</strong> ${total} kcal</div>`;
+            content += `
+                <div class="alert alert-info text-center">
+                    <strong>Total:</strong> ${total} kcal<br>
+                    <small>Protein: ${totalProtein.toFixed(1)} g &nbsp;&nbsp; 
+                    Fats: ${totalFat.toFixed(1)} g &nbsp;&nbsp; 
+                    Carbs: ${totalCarbs.toFixed(1)} g</small>
+                </div>`;
             dailyContent.innerHTML = content;
+
+            const targetProtein = parseFloat("{{ diet_info_member.protein_grams if diet_info_member else 0 }}");
+            const targetFat = parseFloat("{{ diet_info_member.fat_grams if diet_info_member else 0 }}");
+            const targetCarbs = parseFloat("{{ diet_info_member.carbs_grams if diet_info_member else 0 }}");
+            const targetCalories = parseFloat("{{ diet_info_member.daily_calories if diet_info_member else 0 }}");
+
+            const proteinPercent = targetProtein ? (totalProtein / targetProtein * 100) : 0;
+            const fatPercent = targetFat ? (totalFat / targetFat * 100) : 0;
+            const carbsPercent = targetCarbs ? (totalCarbs / targetCarbs * 100) : 0;
+            const calPercent = targetCalories ? (total / targetCalories * 100) : 0;
+
+            function progressColor(key, percent) {
+                if (key === 'protein') {
+                    if (percent < 50) return '#f8d7da';
+                    else if (percent < 80) return '#fff3cd';
+                    else return '#d1e7dd';
+                } else {
+                    if (percent < 50) return '#d1e7dd';
+                    else if (percent < 80) return '#fff3cd';
+                    else return '#f8d7da';
+                }
+            }
+
+            function bgStyle(key, percent) {
+                const color = progressColor(key, percent);
+                const rounded = Math.round(percent);
+                return `background: linear-gradient(to right, ${color} ${rounded}%, #f8f9fa ${rounded}%);`;
+            }
+
+            const nutrientCards = [
+            ['Protein', 'protein', targetProtein, totalProtein, proteinPercent],
+            ['Fats', 'fat', targetFat, totalFat, fatPercent],
+            ['Carbs', 'carbs', targetCarbs, totalCarbs, carbsPercent]
+            ].map(([label, key, target, consumed, percent]) => {
+            return `
+                <div class="col-md-4 mb-3">
+                <div class="card shadow-sm h-100" style="${bgStyle(key, percent)}">
+                    <div class="card-body">
+                    <h5 class="card-title">${label}</h5>
+                    <hr>
+                    <p><strong>Target:</strong> ${target} g</p>
+                    <p><strong>Consumed:</strong> ${consumed.toFixed(1)} g</p>
+                    <p><strong>Remaining:</strong> ${(target - consumed).toFixed(1)} g</p>
+                    </div>
+                </div>
+                </div>
+            `;
+            }).join('');
+
+            document.getElementById("daily-breakdown").innerHTML = `
+                <h3 class="mt-5 mb-3 text-center">Diet Breakdown</h3>
+                <div class="row justify-content-center text-center mb-4">
+                    <div class="col-md-4 mb-3">
+                        <div class="card shadow-sm border-primary">
+                            <div class="card-body">
+                                <h5 class="card-title">Calories Target</h5>
+                                <p class="fs-5">${targetCalories} kcal</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card shadow-sm border-success">
+                            <div class="card-body">
+                                <h5 class="card-title text-success">Calories Consumed</h5>
+                                <p class="fs-5">${total.toFixed(1)} kcal</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card shadow-sm" style="${bgStyle('calories', calPercent)}">
+                            <div class="card-body">
+                                <h5 class="card-title text-danger">Calories Remaining</h5>
+                                <p class="fs-5"><strong>${(targetCalories - total).toFixed(1)} kcal</strong></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row justify-content-center text-center mb-4">
+                    ${nutrientCards}
+                </div>
+            `;
+
         });
 
+        const savedView = localStorage.getItem('mealPlannerView');
+        if (savedView === 'daily') {
+            const savedDate = localStorage.getItem('selectedDate');
+            const picker = document.getElementById('date-picker');
+            if (picker) {
+                picker.value = savedDate || new Date().toISOString().split('T')[0];
+            }
+            dailyBtn.click();  // Will trigger view switch and dispatchEvent
+        } else {
+            weeklyBtn.click(); // Default
+        }
     });
 
     document.querySelectorAll('.day-link').forEach(link => {
@@ -241,6 +429,81 @@
         if (week) {
             window.location.href = `/meal_planner?week=${week}`;
         }
+    });
+
+    document.addEventListener("DOMContentLoaded", function () {
+        const editBtn = document.getElementById("edit-toggle");
+        let editMode = false;
+
+        editBtn.addEventListener("click", () => {
+            editMode = !editMode;
+
+            // Toggle delete buttons
+            document.querySelectorAll(".delete-meal-btn").forEach(btn => {
+                btn.classList.toggle("d-none", !editMode);
+            });
+
+            // Toggle button text
+            editBtn.textContent = editMode ? "Save" : "Edit";
+
+            if (!editMode) {
+                document.querySelector("form").submit(); // Trigger form submission
+            }
+        });
+
+        let confirmedDeletedMealKeys = [];
+
+        document.addEventListener("click", function (e) {
+            if (e.target.classList.contains("delete-meal-btn")) {
+                const container = e.target.closest(".meal-entry");
+                const mealKey = container.dataset.meal;
+
+                const dateInput = document.querySelector(`input[name="meal_${mealKey}_date"]`);
+                const typeInput = document.querySelector(`input[name="meal_${mealKey}_type"]`);
+
+                if (!dateInput || !typeInput) return;
+
+                const mealDate = dateInput.value;
+                const mealType = typeInput.value;
+
+                if (!confirm(`Are you sure you want to delete ${mealKey.replace('_', ' ')}?`)) return;
+
+                // Store the deletion info
+                confirmedDeletedMealKeys.push({ date: mealDate, meal_type: mealType });
+
+                // Update the hidden input (create it if it doesn't exist)
+                let hidden = document.querySelector('input[name="confirmed_deleted_meals"]');
+                if (!hidden) {
+                    hidden = document.createElement("input");
+                    hidden.type = "hidden";
+                    hidden.name = "confirmed_deleted_meals";
+                    document.querySelector("form").appendChild(hidden);
+                }
+                hidden.value = JSON.stringify(confirmedDeletedMealKeys);
+
+                // Clear input fields
+                document.querySelector(`input[name="meal_${mealKey}_name"]`).value = "";
+                document.querySelector(`input[name="meal_${mealKey}_calories"]`).value = "";
+                document.querySelector(`input[name="meal_${mealKey}_macro"]`).value = "";
+                document.querySelector(`input[name="meal_${mealKey}_micro"]`).value = "";
+
+                // Update UI
+                const nameDiv = container.querySelector(".col-7 .form-control");
+                const calDiv = container.querySelector(".col-5 .form-control");
+
+                if (nameDiv) {
+                    nameDiv.innerHTML = `<strong>${mealType.charAt(0).toUpperCase() + mealType.slice(1)}:</strong><br>—`;
+                }
+
+                if (calDiv) {
+                    calDiv.innerHTML = `
+                        <button type="button" class="btn-close position-absolute top-0 end-0 m-1 d-none delete-meal-btn" aria-label="Delete"></button>
+                        <small><strong>Calories:</strong></small><br>— kcal
+                    `;
+                }
+            }
+        });
+
     });
 
 </script>

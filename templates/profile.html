@@ -157,7 +157,7 @@
 
                                 <!-- Cuisines -->
                                 <div class="mb-3">
-                                    <label class="form-label">Cuisines:</label>
+                                    <label class="form-label"><strong>Cuisines:</strong></label>
                                     <div class="form-check">
                                         {% for cuisine in form.cuisines.choices %}
                                             <input class="form-check-input cuisine-checkbox" type="checkbox" name="cuisines" id="cuisine_{{ loop.index }}" value="{{ cuisine[0] }}">
@@ -168,7 +168,7 @@
 
                                 <!-- Allergies -->
                                 <div class="mb-3">
-                                    <label class="form-label">Allergies:</label>
+                                    <label class="form-label"><strong>Allergies:</strong></label>
                                     <div class="form-check">
                                         {% for allergy in form.allergies.choices %}
                                             <input class="form-check-input allergy-checkbox" type="checkbox" name="allergies" id="allergy_{{ loop.index }}" value="{{ allergy[0] }}">
@@ -179,7 +179,7 @@
 
                                 <!-- Restrictions -->
                                 <div class="mb-3">
-                                    <label class="form-label">Dietary Restrictions:</label>
+                                    <label class="form-label"><strong>Dietary Restrictions:</strong></label>
                                     <div class="form-check">
                                         {% for restriction in form.dietary_restrictions.choices %}
                                             <input class="form-check-input restriction-checkbox" type="checkbox" name="dietary_restrictions" id="restriction_{{ loop.index }}" value="{{ restriction[0] }}">

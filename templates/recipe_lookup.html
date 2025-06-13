@@ -49,34 +49,7 @@
                 body: JSON.stringify({ prompt: prompt })
             })
             .then(res => res.json())
-            // .then(data => {
-            //     clearInterval(loadingInterval); // Stop loading animation
-            //     resultsDiv.innerHTML = '';
 
-            //     if (data.recipes.length === 0) {
-            //         resultsDiv.innerHTML = '<p>No recipes found.</p>';
-            //         return;
-            //     }
-
-            //     data.recipes.forEach(recipe => {
-            //         const card = document.createElement("div");
-            //         card.className = "col-md-4";
-            //         card.innerHTML = `
-            //             <div class="card mb-3">
-            //                 <img src="/static/food_images/${recipe.image}" class="card-img-top" alt="${recipe.name}">
-            //                 <div class="card-body">
-            //                     <h5 class="card-title">
-            //                         <a href="/recipe_lookup/${encodeURIComponent(recipe.name)}?source=chatbot&prompt=${encodeURIComponent(prompt)}">
-            //                             ${recipe.name}
-            //                         </a>
-            //                     </h5>
-            //                     <p class="card-text">Calories: ${recipe.calories}</p>
-            //                 </div>
-            //             </div>
-            //         `;
-            //         resultsDiv.appendChild(card);
-            //     });
-            // })
             .then(data => {
                 clearInterval(loadingInterval);
                 resultsDiv.innerHTML = '';
@@ -310,11 +283,15 @@
         
                     fetch(form.action, {
                         method: 'POST',
-                        body: formData
+                        body: formData,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'  // <-- lets Flask know it's an AJAX call
+                        }
                     })
                     .then(response => response.json())  // Assuming the response is JSON
                     .then(data => {
                         if (data.success) {
+                            console.log(data.success)
                             // Show success message or update UI without page reload
                             alert(data.message);  // Example: Use flash messages
                         } else {

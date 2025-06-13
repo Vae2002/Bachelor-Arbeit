@@ -4,53 +4,65 @@
 
 {% block content %}
 
-    <head>
-        <title>{{ recipe.name }}</title>
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    </head>
-
-    <body class="container mt-4">
-
-        <h2>{{ recipe.name }}</h2>
-        <img src="{{ url_for('static', filename='food_images/' ~ recipe.image) }}" alt="{{ recipe.name }}" class="img-fluid mb-3">
-
-        <h4>Calories: {{ recipe.calories }} kcal</h4>
-
-        <div class="mb-3">
-            <h5>Macro Nutrients</h5>
-            <ul>
-                {% for nutrient, value in recipe.macro %}
-                    <li><strong>{{ nutrient }}:</strong> {{ value }}</li>
-                {% endfor %}
-            </ul>
-
-            <h5>Micro Nutrients</h5>
-            <ul>
-                {% for nutrient, value in recipe.micro %}
-                    <li><strong>{{ nutrient }}:</strong> {{ value }}</li>
-                {% endfor %}
-            </ul>
+<div class="container mt-5">
+    <div class="card shadow-lg p-4">
+        <div class="row g-4">
+            <h2 class="mb-3">{{ recipe.name }}</h2>
+            <div class="col-md-5 d-flex align-items-center justify-content-center">
+                <img src="{{ url_for('static', filename='food_images/' ~ recipe.image) }}"
+                    alt="{{ recipe.name }}"
+                    class="img-fluid rounded border"
+                    style="max-width: 100%; max-height: 500px; object-fit: cover;">
+            </div>
+            <div class="col-md-7">
+                <div class="row mt-4">
+                    <h5 class="text-muted">Calories: {{ recipe.calories }} kcal</h5>
+                    <div class="col-sm-6">
+                        <h6 class="text-primary">Macro Nutrients</h6>
+                        <ul class="list-group list-group-flush">
+                            {% for nutrient, value in recipe.macro %}
+                                <li class="list-group-item px-0">
+                                    <strong>{{ nutrient }}:</strong> {{ value }}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    <div class="col-sm-6">
+                        <h6 class="text-success">Micro Nutrients</h6>
+                        <ul class="list-group list-group-flush">
+                            {% for nutrient, value in recipe.micro %}
+                                <li class="list-group-item px-0">
+                                    <strong>{{ nutrient }}:</strong> {{ value }}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <div class="mb-3">
-            <h5>Ingredients</h5>
-            <ul>
-                {% for ingredient in recipe.ingredients %}
-                    <li>{{ ingredient }}</li>
-                {% endfor %}
-            </ul>
+        <hr class="my-4">
+
+        <div class="row">
+            <div class="col-md-6 text-start">
+                <h5>Ingredients</h5>
+                <ul class="list-group list-group-flush">
+                    {% for ingredient in recipe.ingredients %}
+                        <li class="list-group-item px-0">{{ ingredient }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div class="col-md-6 text-start">
+                <h5>Instructions</h5>
+                <ol class="list-group list-group-numbered list-group-flush">
+                    {% for step in recipe.instructions %}
+                        <li class="list-group-item px-0">{{ step }}</li>
+                    {% endfor %}
+                </ol>
+            </div>
         </div>
 
-        <div class="mb-3">
-            <h5>Instructions</h5>
-            <ol>
-                {% for step in recipe.instructions %}
-                    <li>{{ step }}</li>
-                {% endfor %}
-            </ol>
-        </div>
-
-        <div class="mb-3">
+        <div class="mt-4">
             <h5>Save to Meal Planner</h5>
             <form action="{{ url_for('save_to_meal_planner') }}" method="POST">
                 <input type="hidden" name="recipe_name" value="{{ recipe.name }}">
@@ -58,23 +70,25 @@
                 <input type="hidden" name="recipe_macro" value="{{ recipe.macro }}">
                 <input type="hidden" name="recipe_micro" value="{{ recipe.micro }}">
 
-                <div class="mb-2">
-                    <label for="date">Date:</label>
-                    <input type="date" id="date" name="date" required>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="date" class="form-label">Date</label>
+                        <input type="date" id="date" name="date" class="form-control" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="meal" class="form-label">Meal Type</label>
+                        <select name="meal" id="meal" class="form-select">
+                            {% for meal in ['breakfast','lunch','dinner','snack','extra'] %}
+                                <option value="{{ meal }}">{{ meal.capitalize() }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
                 </div>
-
-                <div class="mb-2">
-                    <label for="meal">Meal Type</label>
-                    <select name="meal" id="meal" class="form-select">
-                        {% for meal in ['breakfast','lunch','dinner','snack','extra'] %}
-                            <option value="{{ meal }}">{{ meal.capitalize() }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <button type="submit" class="btn btn-success w-100">Save</button>
+                <button type="submit" class="btn btn-success w-100 mt-4">Save to Planner</button>
             </form>
         </div>
-    </body>
+    </div>
+</div>
+
 
 {% endblock %}

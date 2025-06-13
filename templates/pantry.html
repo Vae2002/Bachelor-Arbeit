@@ -18,8 +18,20 @@
                 <p><strong>Categories:</strong> <span id="modalCategories">Loading...</span></p>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <form method="POST" action="{{ url_for('pantry') }}" class="d-flex flex-wrap gap-2 align-items-end w-100">
+                    <input type="hidden" name="item" id="productInfoItemName">
+                    <div class="form-group">
+                        <label for="productInfoQuantity">Quantity</label>
+                        <input type="number" class="form-control" name="quantity" id="productInfoQuantity" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="productInfoExpiration">Expiration</label>
+                        <input type="date" class="form-control" name="expiration" id="productInfoExpiration" required>
+                    </div>
+                    <button type="submit" class="btn btn-success">Save</button>
+                </form>
             </div>
+
             </div>
         </div>
     </div>
@@ -41,21 +53,24 @@
     </div>
 
     <!-- Camera Modal for Barcode Scan -->
-    <div class="modal fade" id="cameraModal" tabindex="-1" aria-labelledby="cameraModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Scan Barcode</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" onclick="stopScanner()"></button>
-            </div>
-            <div class="modal-body">
-                <div id="scanner-wrapper" style="position: relative; width: 100%; height: 400px;">
-                <div id="scanner-container" style="width: 100%; height: 100%; background: #000;"></div>
-                <canvas id="scanner-overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></canvas>
-                </div>
-            </div>
-            </div>
+    <div class="modal fade" id="cameraModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen-sm-down modal-dialog-centered">
+        <div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title">Scan Barcode</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"
+                    onclick="stopQuagga()"></button>
         </div>
+        <div class="modal-body p-0">
+            <!-- Quagga will inject the live video + overlay into this div -->
+            <div id="quagga-container" style="width:100%; height:100%; position:relative;"></div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
+                    onclick="stopQuagga()">Cancel</button>
+        </div>
+        </div>
+    </div>
     </div>
 
     <!-- Upload Result Modal -->
@@ -72,14 +87,27 @@
                 <img id="uploadedImagePreview" src="" alt="Uploaded Image" class="img-fluid border" style="max-height: 300px;">
             </div>
             <div class="col-md-7">
-                <p><strong>Barcode Number:</strong> <span id="uploadBarcodeNumber">Loading...</span></p>
+                <p><strong>Raw Barcode Data:</strong> <span id="uploadBarcodeData">Loading...</span></p>
+                <p><strong>OCR Result (below barcode):</strong> <span id="uploadOCRResult">Loading...</span></p>
+                <p><strong>Final Barcode Number:</strong> <span id="uploadFinalBarcode">Loading...</span></p>
                 <p><strong>Product Name:</strong> <span id="uploadProductName">Loading...</span></p>
                 <p><strong>Categories:</strong> <span id="uploadCategories">Loading...</span></p>
             </div>
             </div>
         </div>
         <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <form method="POST" action="{{ url_for('pantry') }}" class="d-flex flex-wrap gap-2 align-items-end w-100">
+                <input type="hidden" name="item" id="uploadItemName">
+                <div class="form-group">
+                    <label for="uploadQuantity">Quantity</label>
+                    <input type="number" class="form-control" name="quantity" id="uploadQuantity" required>
+                </div>
+                <div class="form-group">
+                    <label for="uploadExpiration">Expiration</label>
+                    <input type="date" class="form-control" name="expiration" id="uploadExpiration" required>
+                </div>
+                <button type="submit" class="btn btn-success">Save</button>
+            </form>
         </div>
         </div>
     </div>
@@ -119,47 +147,32 @@
         </thead>
         <tbody>
             {% for item in items %}
-            <tr>
-                <form method="POST" action="{{ url_for('pantry') }}">
-                    <input type="hidden" name="item_id" value="{{ item.id }}">
-                    <td><input type="checkbox" class="form-check-input" name="selected" {% if item.selected %}checked{% endif %}></td>
-                    <td><input type="text" name="item" value="{{ item.name }}" class="form-control"></td>
-                    <td><input type="number" name="quantity" value="{{ item.quantity }}" class="form-control"></td>
-                    <td><input type="date" name="expiration" value="{{ item.expired }}" class="form-control"></td>
-                    <td>
-                        <button type="submit" class="btn btn-primary btn-sm">Save</button>
-                    </td>
-                </form>
-            </tr>
+                <tr>
+                    <!-- Update Form -->
+                    <form method="POST" action="{{ url_for('pantry') }}">
+                        <input type="hidden" name="item_id" value="{{ item.id }}">
+                        <td><input type="checkbox" class="form-check-input" name="selected" {% if item.selected %}checked{% endif %}></td>
+                        <td><input type="text" name="item" value="{{ item.name }}" class="form-control"></td>
+                        <td><input type="number" name="quantity" value="{{ item.quantity }}" class="form-control"></td>
+                        <td><input type="date" name="expiration" value="{{ item.expired }}" class="form-control"></td>
+                    </form>
+
+                    <!-- Delete Form -->
+                    <form method="POST" action="{{ url_for('delete_pantry_item', item_id=item.id) }}" onsubmit="">
+                        <td colspan="5" class="text-end">
+                            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                        </td>
+                    </form>
+                </tr>
+
             {% endfor %}
         </tbody>
     </table>
 
     <style>
-        #scanner-wrapper {
-            position: relative;
-            width: 100%;
-            height: 400px;
-            overflow: hidden;
-        }
-
-        #scanner-container {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 1;
-        }
-
-        #scanner-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            z-index: 10;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
+        /* Center the video and ensure consistent sizing */
+        #video {
+            border-radius: 4px;
         }
     </style>
 
@@ -167,213 +180,192 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-    <!-- Include QuaggaJS for barcode scanning -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
-
     <!-- Include Tesseract.js for OCR -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js"></script>
 
-    <script>
-        // Fetch product info and show modal
-        function fetchProductInfo() {
-            const barcode = document.getElementById('barcode').value.trim();
-            if (!barcode) return alert('Please enter a barcode.');
+<script>
+    // Fetch product info and show modal
+    function fetchProductInfo() {
+        const barcode = document.getElementById('barcode').value.trim();
+        if (!barcode) return alert('Please enter a barcode.');
 
-            fetch(`https://world.openfoodfacts.org/api/v2/product/${barcode}.json`)
-                .then(response => {
-                    if (!response.ok) throw new Error("Network response was not ok.");
-                    return response.json();
-                })
-                .then(data => {
-                    const product = data.product;
-                    if (product) {
-                        document.getElementById('modalProductName').textContent = product.product_name || 'N/A';
-                        document.getElementById('modalCategories').textContent = product.categories || 'N/A';
-                        const modal = new bootstrap.Modal(document.getElementById('productInfoModal'));
-                        modal.show();
-                    } else {
-                        alert("Product not found.");
-                    }
-                })
-                .catch(error => {
-                    console.error('Error fetching product:', error);
-                    alert("Error fetching product info.");
-                });
-        }
+        fetch(`https://world.openfoodfacts.org/api/v2/product/${barcode}.json`)
+            .then(response => {
+                if (!response.ok) throw new Error("Network response was not ok.");
+                return response.json();
+            })
+            .then(data => {
+                const product = data.product;
+                if (product) {
+                    document.getElementById('modalProductName').textContent = product.product_name || 'N/A';
+                    document.getElementById('productInfoItemName').value = product.product_name || '';
+                    document.getElementById('modalCategories').textContent = product.categories || 'N/A';
+                    const modal = new bootstrap.Modal(document.getElementById('productInfoModal'));
+                    modal.show();
+                } else {
+                    alert("Product not found.");
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching product:', error);
+                alert("Error fetching product info.");
+            });
+    }
 
-        // Upload image and scan barcode
-        const uploadResultModalEl = document.getElementById('uploadResultModal');
-        const uploadResultModal = new bootstrap.Modal(uploadResultModalEl);
+    // Barcode scanner logic
+    let quaggaStarted = false;
 
-        document.getElementById('uploadBarcodeImage').addEventListener('change', function(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+    function startCamera() {
+        if (quaggaStarted) return;
+        quaggaStarted = true;
 
-            // Reset modal content before showing
-            document.getElementById('uploadedImagePreview').src = '';
-            document.getElementById('uploadBarcodeNumber').textContent = 'Loading...';
-            document.getElementById('uploadProductName').textContent = 'Loading...';
-            document.getElementById('uploadCategories').textContent = 'Loading...';
-
-            // Show modal
-            uploadResultModal.show();
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const imgSrc = e.target.result;
-                document.getElementById('uploadedImagePreview').src = imgSrc;
-
-                // Decode barcode from image using Quagga decodeSingle
-                Quagga.decodeSingle({
-                    src: imgSrc,
-                    numOfWorkers: 0, // required for decodeSingle
-                    inputStream: {
-                        size: 800, // increase input image size for better detection
-                    },
-                    decoder: {
-                        readers: ["ean_reader", "ean_8_reader", "code_128_reader", "upc_reader", "upc_e_reader"],
-                        multiple: false
-                    },
-                    locate: true, // enable barcode location before decode, helps if barcode is not centered
-                    locate: true,
-                    src: imgSrc,
-                }, function(result) {
-                    if (result && result.codeResult) {
-                        const code = result.codeResult.code;
-                        document.getElementById('uploadBarcodeNumber').textContent = code;
-
-                        // Fetch product info
-                        fetch(`https://world.openfoodfacts.org/api/v2/product/${code}.json`)
-                            .then(response => response.json())
-                            .then(data => {
-                                const product = data.product;
-                                if (product) {
-                                    document.getElementById('uploadProductName').textContent = product.product_name || 'N/A';
-                                    document.getElementById('uploadCategories').textContent = product.categories || 'N/A';
-                                } else {
-                                    document.getElementById('uploadProductName').textContent = 'Product not found';
-                                    document.getElementById('uploadCategories').textContent = 'N/A';
-                                }
-                            })
-                            .catch(() => {
-                                document.getElementById('uploadProductName').textContent = 'Error fetching product';
-                                document.getElementById('uploadCategories').textContent = 'N/A';
-                            });
-                    } else {
-                        document.getElementById('uploadBarcodeNumber').textContent = 'No barcode detected';
-                        document.getElementById('uploadProductName').textContent = 'N/A';
-                        document.getElementById('uploadCategories').textContent = 'N/A';
-                    }
-                });
-            };
-            reader.readAsDataURL(file);
-        });
-
-        // Start camera scanner
-        function startScanner() {
-            if (typeof Quagga === 'undefined') {
-                alert("QuaggaJS is not loaded.");
+        Quagga.init({
+            inputStream: {
+                name: "Live",
+                type: "LiveStream",
+                target: document.querySelector('#quagga-container'),
+                constraints: {
+                    width: { min: 640 },
+                    height: { min: 480 },
+                    facingMode: "environment"
+                }
+            },
+            decoder: {
+                readers: ["ean_reader", "ean_8_reader", "upc_reader", "upc_e_reader"]
+            },
+            locate: true
+        }, function(err) {
+            if (err) {
+                console.error('Quagga init error:', err);
+                alert('Could not start barcode scanner.');
+                quaggaStarted = false;
                 return;
             }
+            Quagga.start();
+        });
 
-            Quagga.init({
-                inputStream: {
-                    name: "Live",
-                    type: "LiveStream",
-                    target: document.querySelector('#scanner-container'),
-                    constraints: {
-                        width: 640,
-                        height: 400,
-                        facingMode: "environment"
-                    }
-                },
-                decoder: {
-                    readers: ["ean_reader"] 
-                    // Read about barcode decoding
-                }
-            }, function(err) {
-                if (err) {
-                    console.error(err);
-                    alert("Error initializing scanner: " + err);
+        Quagga.onDetected(onQuaggaDetected);
+    }
+
+    function onQuaggaDetected(result) {
+        if (!result || !result.codeResult || !result.codeResult.code) return;
+        const code = result.codeResult.code;
+        stopQuagga();
+        const cameraModal = bootstrap.Modal.getInstance(document.getElementById('cameraModal'));
+        if (cameraModal) cameraModal.hide();
+        document.getElementById('barcode').value = code;
+        fetchProductInfo();
+    }
+
+    function stopQuagga() {
+        if (!quaggaStarted) return;
+        Quagga.offDetected(onQuaggaDetected);
+        Quagga.stop();
+        quaggaStarted = false;
+    }
+
+    document.getElementById('cameraModal').addEventListener('shown.bs.modal', () => {
+        startCamera();
+    });
+    document.getElementById('cameraModal').addEventListener('hidden.bs.modal', () => {
+        stopQuagga();
+    });
+
+    // Upload image and OCR
+    const uploadResultModalEl = document.getElementById('uploadResultModal');
+    const uploadResultModal = new bootstrap.Modal(uploadResultModalEl);
+
+    document.getElementById('uploadBarcodeImage').addEventListener('change', function(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        // Reset modal fields BEFORE fetch
+        document.getElementById('uploadedImagePreview').src = '';
+        document.getElementById('uploadBarcodeData').textContent = 'Loading...';
+        document.getElementById('uploadOCRResult').textContent = 'Loading...';
+        document.getElementById('uploadFinalBarcode').textContent = 'Loading...';
+        document.getElementById('uploadProductName').textContent = 'Loading...';
+        document.getElementById('uploadCategories').textContent = 'Loading...';
+        document.getElementById('uploadItemName').value = ''; // reset just in case
+
+        uploadResultModal.show();
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const imgSrc = e.target.result;
+            document.getElementById('uploadedImagePreview').src = imgSrc;
+
+            const formData = new FormData();
+            formData.append('image', file);
+
+            fetch('{{ url_for("scan_barcode") }}', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    document.getElementById('uploadBarcodeData').textContent = 'Error';
+                    document.getElementById('uploadOCRResult').textContent = data.error;
+                    document.getElementById('uploadFinalBarcode').textContent = 'N/A';
+                    document.getElementById('uploadProductName').textContent = 'N/A';
+                    document.getElementById('uploadCategories').textContent = 'N/A';
                     return;
                 }
-                Quagga.start();
-            });
-
-            Quagga.onDetected(function(result) {
-                if (result && result.codeResult) {
-                    const code = result.codeResult.code;
-                    document.getElementById('barcode').value = code;
-
-                    // Stop scanning after first successful detection
-                    Quagga.stop();
-
-                    // Hide the modal
-                    const cameraModal = bootstrap.Modal.getInstance(document.getElementById('cameraModal'));
-                    if (cameraModal) cameraModal.hide();
-
-                    // Fetch product info automatically
-                    fetchProductInfo();
+                if (data.message) {
+                    document.getElementById('uploadBarcodeData').textContent = data.message;
+                    document.getElementById('uploadOCRResult').textContent = 'N/A';
+                    document.getElementById('uploadFinalBarcode').textContent = 'N/A';
+                    document.getElementById('uploadProductName').textContent = 'N/A';
+                    document.getElementById('uploadCategories').textContent = 'N/A';
+                    return;
                 }
+
+                const item = data[0];
+                const rawText = item.barcode_data?.trim() || '';
+                const ocrText = item.ocr_text_below_barcode?.trim() || '';
+                const finalBarcode = rawText !== '' ? rawText : ocrText;
+
+                document.getElementById('uploadBarcodeData').textContent = rawText || 'None';
+                document.getElementById('uploadOCRResult').textContent = ocrText || 'None';
+                document.getElementById('uploadFinalBarcode').textContent = finalBarcode || 'None';
+
+                if (finalBarcode) {
+                    fetch(`https://world.openfoodfacts.org/api/v2/product/${finalBarcode}.json`)
+                    .then(response => response.json())
+                    .then(prodData => {
+                        const product = prodData.product;
+                        if (product) {
+                            const productName = product.product_name || '';
+                            document.getElementById('uploadProductName').textContent = productName || 'N/A';
+                            document.getElementById('uploadCategories').textContent = product.categories || 'N/A';
+                            document.getElementById('uploadItemName').value = productName;
+                        } else {
+                            document.getElementById('uploadProductName').textContent = 'Product not found';
+                            document.getElementById('uploadCategories').textContent = 'N/A';
+                            document.getElementById('uploadItemName').value = '';
+                        }
+                    })
+                    .catch(() => {
+                        document.getElementById('uploadProductName').textContent = 'Error fetching';
+                        document.getElementById('uploadCategories').textContent = 'N/A';
+                    });
+                } else {
+                    document.getElementById('uploadProductName').textContent = 'No barcode to lookup';
+                    document.getElementById('uploadCategories').textContent = 'N/A';
+                }
+            })
+            .catch(err => {
+                document.getElementById('uploadBarcodeData').textContent = 'Error';
+                document.getElementById('uploadOCRResult').textContent = err;
+                document.getElementById('uploadFinalBarcode').textContent = 'N/A';
+                document.getElementById('uploadProductName').textContent = 'N/A';
+                document.getElementById('uploadCategories').textContent = 'N/A';
             });
-        }
+        };
 
-        // Stop camera scanner when modal closes
-        function stopScanner() {
-            if (Quagga) {
-                Quagga.stop();
-            }
-        }
-
-        // When camera modal is shown, start scanner
-        document.getElementById('cameraModal').addEventListener('shown.bs.modal', startScanner);
-
-        // When camera modal is hidden, stop scanner
-        document.getElementById('cameraModal').addEventListener('hidden.bs.modal', stopScanner);
-    </script>
-
-    <div class="mb-4">
-        <label for="barcodeImageUpload" class="form-label">Upload Image for Barcode Scan</label>
-        <input type="file" id="barcodeImageUpload" accept="image/*" class="form-control">
-        <button id="scanImageBtn" class="btn btn-primary mt-2">Scan Barcode</button>
-    </div>
-
-    <div id="scanResults" style="white-space: pre-wrap; background: #f8f9fa; padding: 10px; border-radius: 5px; margin-top: 10px;"></div>
-
-    <script>
-    document.getElementById('scanImageBtn').addEventListener('click', () => {
-        const input = document.getElementById('barcodeImageUpload');
-        const file = input.files[0];
-        if (!file) {
-            alert('Please select an image first.');
-            return;
-        }
-
-        const formData = new FormData();
-        formData.append('image', file);
-
-        fetch('{{ url_for("scan_barcode") }}', {
-            method: 'POST',
-            body: formData
-        }).then(response => response.json())
-        .then(data => {
-            const resultDiv = document.getElementById('scanResults');
-            if (data.error) {
-                resultDiv.textContent = "Error: " + data.error;
-            } else if (data.message) {
-                resultDiv.textContent = data.message;
-            } else {
-                // Format the results nicely
-                let output = '';
-                data.forEach((item, index) => {
-                    output += `Result ${index+1}:\nBarcode: ${item.barcode_data}\nOCR below barcode: ${item.ocr_text_below_barcode}\n\n`;
-                });
-                resultDiv.textContent = output;
-            }
-        }).catch(err => {
-            document.getElementById('scanResults').textContent = 'Error scanning image: ' + err;
-        });
+        reader.readAsDataURL(file);
     });
-    </script>
+</script>
 
 {% endblock %}

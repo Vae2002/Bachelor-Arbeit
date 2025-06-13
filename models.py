@@ -43,18 +43,6 @@ class SafeFloatField(FloatField):
                 self.data = None
                 raise ValueError('Invalid number format')
 
-
-class MemberForm(FlaskForm):
-    name = SafeFloatField('Name', validators=[Optional()])
-    daily_calories = SafeFloatField('Daily Calories', validators=[Optional()])
-    protein_grams = SafeFloatField('Protein (g)', validators=[Optional()])
-    fat_grams = SafeFloatField('Fat (g)', validators=[Optional()])
-    carbs_grams = SafeFloatField('Carbs (g)', validators=[Optional()])
-    cuisines = SelectMultipleField('Cuisines', choices=[...], validators=[Optional()])
-    allergies = SelectMultipleField('Allergies', choices=[...], validators=[Optional()])
-    dietary_restrictions = SelectMultipleField('Restrictions', choices=[...], validators=[Optional()])
-
-
 # GroceryItem Model
 class GroceryItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
