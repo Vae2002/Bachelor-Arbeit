@@ -72,7 +72,15 @@
                         <div class="col-7">
                             <div class="form-control bg-light small-text">
                                 <strong>{{ meal.capitalize() }}:</strong><br>
-                                {{ meal_info.get('name', '—') }}
+                                {% set meal_name = meal_info.get('name', '') %}
+                                {% if meal_name %}
+                                <a href="{{ url_for('recipe_detail', recipe_name=meal_name|urlencode) }}" class="text-decoration-none" target="_blank">
+                                    {{ meal_name }}
+                                </a>
+                                {% else %}
+                                —
+                                {% endif %}
+
                                 <input type="hidden" name="meal_{{ meal_key }}_name" value="{{ meal_info.get('name', '') }}">
                                 <input type="hidden" name="meal_{{ meal_key }}_calories" value="{{ meal_info.get('calories', '') }}">
                                 <input type="hidden" name="meal_{{ meal_key }}_macro" value="{{ meal_info.get('macro', '') }}">
