@@ -118,7 +118,7 @@
                             <div class="modal-body" style="max-height: 60vh; overflow-y: auto;">
                                 <div class="mb-3">
                                     {{ form.name.label }} 
-                                    {{ form.name(class="form-control", id="memberName") }}
+                                    {{ form.name(class="form-control", id="memberName", required=True) }}
                                 </div>
 
                                 <!-- Nutrition Toggle -->
@@ -138,19 +138,19 @@
                                         </div>
                                         <div class="mb-3">
                                             {{ form.daily_calories.label }} 
-                                            {{ form.daily_calories(class="form-control", id="dailyCalories") }}
+                                            {{ form.daily_calories(class="form-control", id="dailyCalories", required=True) }}
                                         </div>
                                         <div class="mb-3">
                                             {{ form.protein_grams.label }} 
-                                            {{ form.protein_grams(class="form-control", id="proteinGrams") }}
+                                            {{ form.protein_grams(class="form-control", id="proteinGrams", required=True) }}
                                         </div>
                                         <div class="mb-3">
                                             {{ form.fat_grams.label }} 
-                                            {{ form.fat_grams(class="form-control", id="fatGrams") }}
+                                            {{ form.fat_grams(class="form-control", id="fatGrams", required=True) }}
                                         </div>
                                         <div class="mb-3">
                                             {{ form.carbs_grams.label }} 
-                                            {{ form.carbs_grams(class="form-control", id="carbsGrams") }}
+                                            {{ form.carbs_grams(class="form-control", id="carbsGrams", required=True) }}
                                         </div>
                                     </div>
                                 </div>

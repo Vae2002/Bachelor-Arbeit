@@ -121,4 +121,10 @@ document.addEventListener('DOMContentLoaded', function () {
         const modal = new bootstrap.Modal(document.getElementById('memberModal'));
         modal.show();
     });
+
+    const addMemberModalEl = document.getElementById('memberModal');
+
+    addMemberModalEl.addEventListener('hidden.bs.modal', function () {
+        window.location.href = "/profile?member_id=1";
+    });
 });

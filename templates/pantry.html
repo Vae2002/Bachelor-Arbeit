@@ -217,7 +217,6 @@
     const productInfoModalEl = document.getElementById('productInfoModal');
 
     productInfoModalEl.addEventListener('hidden.bs.modal', function () {
-        // Redirect to pantry when the modal is closed
         window.location.href = "{{ url_for('pantry') }}";
     });
 
