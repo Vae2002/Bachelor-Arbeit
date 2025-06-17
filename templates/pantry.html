@@ -204,13 +204,22 @@
                     modal.show();
                 } else {
                     alert("Product not found.");
+                    window.location.href = "{{ url_for('pantry') }}";
                 }
             })
             .catch(error => {
                 console.error('Error fetching product:', error);
                 alert("Error fetching product info.");
+                window.location.href = "{{ url_for('pantry') }}";
             });
     }
+
+    const productInfoModalEl = document.getElementById('productInfoModal');
+
+    productInfoModalEl.addEventListener('hidden.bs.modal', function () {
+        // Redirect to pantry when the modal is closed
+        window.location.href = "{{ url_for('pantry') }}";
+    });
 
     // Barcode scanner logic
     let quaggaStarted = false;
