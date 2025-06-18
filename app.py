@@ -9,6 +9,11 @@ from models import db, User, Member, GroceryItem, MealPlan, Pantry
 from forms import MemberForm
 import urllib.parse
 import ast
+import os
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_from_directory, send_file
+import pandas as pd
+from PIL import Image
+import io
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -19,6 +24,12 @@ db.init_app(app)
 
 with app.app_context():
     db.create_all()
+
+RECIPES_CSV_PATH = 'datasets/recipes_with_images_and_nutrients.csv'
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+IMAGE_FOLDER_PATH = os.path.join(BASE_DIR, 'Food Images')
+
+df = pd.read_csv(RECIPES_CSV_PATH)
 
 # Configure upload folder
 UPLOAD_FOLDER = 'static/uploads'
@@ -446,6 +457,53 @@ def home():
         }
     )
 
+@app.route('/recipe-ai-suggestions')
+@login_required
+def recipe_ai_suggestions():
+
+    # Load user's first member data
+    member = Member.query.filter_by(user_id=current_user.id).first()
+
+    if not member:
+        return {"error": "No member data found"}, 404
+
+    # Extract preferences
+    allergies = ast.literal_eval(member.allergies or "[]")
+    restrictions = ast.literal_eval(member.dietary_restrictions or "[]")
+
+    def filter_recipes(row):
+        ing = row["Ingredients"].lower()
+        for allergy in allergies:
+            if allergy in ing:
+                return False
+        for restriction in restrictions:
+            if restriction in ing:
+                return False
+        return True
+
+    # Filter by dietary preferences
+    filtered = df[df.apply(filter_recipes, axis=1)].copy()
+
+    # Optional: sort by closeness to calorie target
+    if member.daily_calories:
+        filtered["CalorieDiff"] = (filtered["Calories"] - member.daily_calories).abs()
+        filtered = filtered.sort_values("CalorieDiff")
+
+    # Select top 9 suggestions
+    selected = filtered.head(30).sample(9) if len(filtered) > 9 else filtered
+
+    suggestions = [
+        {
+            "name": row["Recipe Name"],
+            "image": f"{row['Image_Name']}.jpg",
+            "calories": round(row["Calories"], 1)
+        }
+        for _, row in selected.iterrows()
+    ]
+
+    return {"recipes": suggestions}
+
+
 # =================== DIET CALCULATOR ===================
 
 def calculate_diet(weight, height, age, gender, activity, protein_pct, fat_pct, carbs_pct):
@@ -683,18 +741,6 @@ def rename_item(item_id):
     return jsonify(success=True)
 
 # =================== RECIPES ===================
-import os
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_from_directory, send_file
-import pandas as pd
-from PIL import Image
-import io
-
-RECIPES_CSV_PATH = 'datasets/recipes_with_images_and_nutrients.csv'
-BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-IMAGE_FOLDER_PATH = os.path.join(BASE_DIR, 'Food Images')
-
-df = pd.read_csv(RECIPES_CSV_PATH)
-
 # === ALLERGEN MAPPING ===
 ALLERGEN_INGREDIENT_MAP = {
     'Milk': ['milk', 'cheese', 'butter', 'cream', 'yogurt', 'evaporated milk', 'condensed milk'],

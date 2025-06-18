@@ -5,7 +5,6 @@
 {% block content %}
 <div class="container mt-4">
     <h1 class="text-center mb-4">Hi, {{ current_user.username }}!</h1>
-    <!-- <p class="text-center text-muted">Here's your personalized summary for today, {{ current_user.username }}.</p> -->
 
     <!-- Diet Info -->
     <h3 class="mt-5 mb-3 text-center">Today's Diet Breakdown</h3>
@@ -125,6 +124,43 @@
             </div>
         {% endfor %}
     </div>
+
+    <!-- AI-Based Recipe Suggestions -->
+    <h3 class="mt-5 mb-3 text-center">AI-Powered Meal Suggestions</h3>
+    <div id="aiSuggestions" class="row justify-content-center">
+        <p class="text-center">Loading suggestions...</p>
+    </div>
+
+    <script>
+    fetch("/recipe-ai-suggestions")
+        .then(response => response.json())
+        .then(data => {
+            const container = document.getElementById("aiSuggestions");
+            container.innerHTML = '';
+
+            if (data.recipes.length === 0) {
+                container.innerHTML = '<p>No suggestions available.</p>';
+                return;
+            }
+
+            data.recipes.forEach(recipe => {
+                const col = document.createElement("div");
+                col.className = "col-md-4 mb-4";
+
+                col.innerHTML = `
+                    <div class="card shadow-sm h-100">
+                        <img src="/static/food_images/${recipe.image}" class="card-img-top" alt="${recipe.name}">
+                        <div class="card-body">
+                            <h5 class="card-title">${recipe.name}</h5>
+                            <p class="card-text">Calories: ${recipe.calories} kcal</p>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(col);
+            });
+        });
+    </script>
+
 
     <!-- Navigation Buttons -->
     <!-- <div class="text-center mt-5">
