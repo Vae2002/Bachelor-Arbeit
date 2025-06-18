@@ -1363,6 +1363,22 @@ def meal_planner():
         form=form
     )
 
+# =================== HISTORY ===================
+@app.route('/history')
+@login_required
+def history():
+    selected_member_id = request.args.get('member_id', type=int)
+
+    meals_query = MealPlan.query.filter_by(user_id=current_user.id)
+    if selected_member_id:
+        meals_query = meals_query.filter_by(member_id=selected_member_id)
+
+    meals = meals_query.order_by(MealPlan.date.desc()).all()
+
+    return render_template("history.html", meals=meals)
+
+
+
 # =================== PANTRY ORGANIZATION ===================
 from flask import request, jsonify
 import os
