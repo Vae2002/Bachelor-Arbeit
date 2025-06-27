@@ -457,20 +457,23 @@ def home():
         }
     )
 
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.neighbors import NearestNeighbors
+
 @app.route('/recipe-ai-suggestions')
 @login_required
 def recipe_ai_suggestions():
+    import ast
 
     # Load user's first member data
     member = Member.query.filter_by(user_id=current_user.id).first()
-
     if not member:
         return {"error": "No member data found"}, 404
 
-    # Extract preferences
     allergies = ast.literal_eval(member.allergies or "[]")
     restrictions = ast.literal_eval(member.dietary_restrictions or "[]")
 
+    # Step 1: Filter by dietary preferences (as before)
     def filter_recipes(row):
         ing = row["Ingredients"].lower()
         for allergy in allergies:
@@ -481,17 +484,26 @@ def recipe_ai_suggestions():
                 return False
         return True
 
-    # Filter by dietary preferences
     filtered = df[df.apply(filter_recipes, axis=1)].copy()
+    if filtered.empty:
+        return {"recipes": []}
 
-    # Optional: sort by closeness to calorie target
+    # Step 2: Apply TF-IDF and KNN on Ingredients
+    vectorizer = TfidfVectorizer()
+    tfidf_matrix = vectorizer.fit_transform(filtered['Ingredients'])
+
+    knn = NearestNeighbors(metric='cosine', algorithm='brute')
+    knn.fit(tfidf_matrix)
+
+    # Step 3: Choose a base recipe (optional: best calorie match or random)
     if member.daily_calories:
         filtered["CalorieDiff"] = (filtered["Calories"] - member.daily_calories).abs()
         filtered = filtered.sort_values("CalorieDiff")
+    query_index = 0  # Use best calorie match as base
+    distances, indices = knn.kneighbors(tfidf_matrix[query_index], n_neighbors=min(9, len(filtered)))
 
-    # Select top 9 suggestions
-    selected = filtered.head(30).sample(9) if len(filtered) > 9 else filtered
-
+    # Step 4: Return similar recipes
+    selected = filtered.iloc[indices[0]]
     suggestions = [
         {
             "name": row["Recipe Name"],

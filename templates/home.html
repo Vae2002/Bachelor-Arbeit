@@ -153,9 +153,37 @@
                         <div class="card-body">
                             <h5 class="card-title">${recipe.name}</h5>
                             <p class="card-text">Calories: ${recipe.calories} kcal</p>
+                            <button class="btn btn-outline-success mb-2" type="button" data-bs-toggle="collapse" data-bs-target="#saveForm${recipe.id}" aria-expanded="false">
+                                Save to Meal Planner
+                            </button>
+                            <div class="collapse" id="saveForm${recipe.id}">
+                                <form action="/save_to_meal_planner" method="POST">
+                                    <input type="hidden" name="recipe_name" value="${recipe.name}">
+                                    <input type="hidden" name="recipe_calories" value="${recipe.calories}">
+                                    <input type="hidden" name="recipe_macro" value='${JSON.stringify(recipe.macro)}'>
+                                    <input type="hidden" name="recipe_micro" value='${JSON.stringify(recipe.micro)}'>
+
+                                    <div class="mb-2">
+                                        <label>Date:</label>
+                                        <input type="date" name="date" class="form-control" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label>Meal Type:</label>
+                                        <select name="meal" class="form-select">
+                                            <option value="breakfast">Breakfast</option>
+                                            <option value="lunch">Lunch</option>
+                                            <option value="snack">Snack</option>
+                                            <option value="dinner">Dinner</option>
+                                            <option value="extra">Extra</option>
+                                        </select>
+                                    </div>
+                                    <button type="submit" class="btn btn-success w-100">Save</button>
+                                </form>
+                            </div>
                         </div>
                     </div>
                 `;
+
                 container.appendChild(col);
             });
         });
