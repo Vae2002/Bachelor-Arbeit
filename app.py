@@ -156,33 +156,110 @@ def inject_member_dropdown_data():
 
     return {}
 
+# @app.route('/profile', methods=['GET', 'POST'])
+# @login_required
+# def profile():
+#     members = Member.query.filter_by(user_id=current_user.id).all()
+#     selected_member_id = request.args.get('member_id')
+
+#     selected_member = None
+#     if selected_member_id:
+#         selected_member = Member.query.filter_by(id=selected_member_id, user_id=current_user.id).first()
+#     elif members:
+#         selected_member = members[0]
+
+#     # Parse JSON fields
+#     if selected_member:
+#         selected_member.cuisines = json.loads(selected_member.cuisines or "[]")
+#         selected_member.allergies = json.loads(selected_member.allergies or "[]")
+#         selected_member.dietary_restrictions = json.loads(selected_member.dietary_restrictions or "[]")
+
+#     member_pairs = list(zip(members, [member_to_dict(m) for m in members]))
+
+#     form = MemberForm()
+
+#     return render_template(
+#         "profile.html",
+#         user=current_user,
+#         members=members, 
+#         member_pairs=member_pairs, 
+#         selected_member=selected_member,
+#         form=form
+#     )
+
 @app.route('/profile', methods=['GET', 'POST'])
 @login_required
 def profile():
+    # Get all real members (excluding All Members for now)
     members = Member.query.filter_by(user_id=current_user.id).all()
-    selected_member_id = request.args.get('member_id')
+    real_members = [m for m in members if m.name != "All Members"]
 
+    # Check or create 'All Members'
+    all_member_db = Member.query.filter_by(user_id=current_user.id, name="All Members").first()
+    if not all_member_db:
+        all_member_db = Member(
+            user_id=current_user.id,
+            name="All Members",
+            daily_calories=None,
+            protein_grams=None,
+            fat_grams=None,
+            carbs_grams=None,
+            cuisines=json.dumps([]),
+            allergies=json.dumps([]),
+            dietary_restrictions=json.dumps([])
+        )
+        db.session.add(all_member_db)
+        db.session.commit()
+
+    # Update 'All Members' based on real members
+    all_allergies = set()
+    all_restrictions = set()
+    for m in real_members:
+        all_allergies.update(json.loads(m.allergies or "[]"))
+        all_restrictions.update(json.loads(m.dietary_restrictions or "[]"))
+    all_member_db.allergies = json.dumps(sorted(all_allergies))
+    all_member_db.dietary_restrictions = json.dumps(sorted(all_restrictions))
+    db.session.commit()
+
+    # Re-fetch members including the updated 'All Members'
+    members = Member.query.filter_by(user_id=current_user.id).order_by(
+        Member.name != "All Members", Member.name.asc()
+    ).all()
+
+    # Build member_pairs for dropdown/edit modals
+    member_pairs = [(m, {
+        'id': m.id,
+        'name': m.name,
+        'daily_calories': m.daily_calories,
+        'protein_grams': m.protein_grams,
+        'fat_grams': m.fat_grams,
+        'carbs_grams': m.carbs_grams,
+        'cuisines': json.loads(m.cuisines or "[]"),
+        'allergies': json.loads(m.allergies or "[]"),
+        'dietary_restrictions': json.loads(m.dietary_restrictions or "[]"),
+    }) for m in members]
+
+    # Determine selected member
     selected_member = None
+    selected_member_id = request.args.get('member_id', type=int)
     if selected_member_id:
-        selected_member = Member.query.filter_by(id=selected_member_id, user_id=current_user.id).first()
-    elif members:
+        selected_member = next((m for m in members if m.id == selected_member_id), None)
+    if not selected_member and members:
         selected_member = members[0]
 
-    # Parse JSON fields
+    # Parse selected member's JSON fields
     if selected_member:
         selected_member.cuisines = json.loads(selected_member.cuisines or "[]")
         selected_member.allergies = json.loads(selected_member.allergies or "[]")
         selected_member.dietary_restrictions = json.loads(selected_member.dietary_restrictions or "[]")
-
-    member_pairs = list(zip(members, [member_to_dict(m) for m in members]))
 
     form = MemberForm()
 
     return render_template(
         "profile.html",
         user=current_user,
-        members=members, 
-        member_pairs=member_pairs, 
+        members=members,
+        member_pairs=member_pairs,
         selected_member=selected_member,
         form=form
     )
@@ -371,6 +448,64 @@ def home():
 
     # Member selection logic
     members = Member.query.filter_by(user_id=current_user.id).all()
+
+    # member_pairs = [(m, {
+    #     'id': m.id,
+    #     'name': m.name,
+    #     'daily_calories': m.daily_calories,
+    #     'protein_grams': m.protein_grams,
+    #     'fat_grams': m.fat_grams,
+    #     'carbs_grams': m.carbs_grams,
+    #     'cuisines': json.loads(m.cuisines),
+    #     'allergies': json.loads(m.allergies),
+    #     'dietary_restrictions': json.loads(m.dietary_restrictions),
+    # }) for m in members]
+
+    # # Aggregate data for "All Members"
+    # all_allergies = set()
+    # all_restrictions = set()
+    # for m in members:
+    #     all_allergies.update(json.loads(m.allergies))
+    #     all_restrictions.update(json.loads(m.dietary_restrictions))
+
+    # # Construct pseudo-member
+    # all_members_summary = Member(
+    #     id=0,  # Use 0 as a reserved ID
+    #     user_id=current_user.id,
+    #     name="All Members",
+    #     daily_calories=None,
+    #     protein_grams=None,
+    #     fat_grams=None,
+    #     carbs_grams=None,
+    #     cuisines="[]",
+    #     allergies=json.dumps(list(all_allergies)),
+    #     dietary_restrictions=json.dumps(list(all_restrictions)),
+    # )
+
+    # # Insert at the beginning
+    # members.insert(0, all_members_summary)
+    # member_pairs.insert(0, (all_members_summary, {
+    #     'id': 0,
+    #     'name': "All Members",
+    #     'daily_calories': None,
+    #     'protein_grams': None,
+    #     'fat_grams': None,
+    #     'carbs_grams': None,
+    #     'cuisines': [],
+    #     'allergies': list(all_allergies),
+    #     'dietary_restrictions': list(all_restrictions),
+    # }))
+    
+    # selected_member_id = request.args.get('member_id')
+
+    # selected_member = None
+    # if selected_member_id == "0":
+    #     selected_member = all_members_summary  
+    # elif selected_member_id:
+    #     selected_member = Member.query.filter_by(id=selected_member_id, user_id=current_user.id).first()
+    # elif members:
+    #     selected_member = members[0]
+
     selected_member_id = request.args.get('member_id', type=int)
 
     selected_member = None
@@ -435,8 +570,12 @@ def home():
     }
 
     # Compute remaining values (target - consumed)
+    # remaining = {
+    #     k: max(targets[k] - totals[k], 0) for k in targets
+    # }
+
     remaining = {
-        k: max(targets[k] - totals[k], 0) for k in targets
+        k: max((targets[k] or 0) - totals[k], 0) for k in targets
     }
 
     return render_template(
@@ -1364,6 +1503,64 @@ def meal_planner():
 
     # Member selection logic
     members = Member.query.filter_by(user_id=current_user.id).all()
+
+    # member_pairs = [(m, {
+    #     'id': m.id,
+    #     'name': m.name,
+    #     'daily_calories': m.daily_calories,
+    #     'protein_grams': m.protein_grams,
+    #     'fat_grams': m.fat_grams,
+    #     'carbs_grams': m.carbs_grams,
+    #     'cuisines': json.loads(m.cuisines),
+    #     'allergies': json.loads(m.allergies),
+    #     'dietary_restrictions': json.loads(m.dietary_restrictions),
+    # }) for m in members]
+
+    # # Aggregate data for "All Members"
+    # all_allergies = set()
+    # all_restrictions = set()
+    # for m in members:
+    #     all_allergies.update(json.loads(m.allergies))
+    #     all_restrictions.update(json.loads(m.dietary_restrictions))
+
+    # # Construct pseudo-member
+    # all_members_summary = Member(
+    #     id=0,  # Use 0 as a reserved ID
+    #     user_id=current_user.id,
+    #     name="All Members",
+    #     daily_calories=None,
+    #     protein_grams=None,
+    #     fat_grams=None,
+    #     carbs_grams=None,
+    #     cuisines="[]",
+    #     allergies=json.dumps(list(all_allergies)),
+    #     dietary_restrictions=json.dumps(list(all_restrictions)),
+    # )
+
+    # # Insert at the beginning
+    # members.insert(0, all_members_summary)
+    # member_pairs.insert(0, (all_members_summary, {
+    #     'id': 0,
+    #     'name': "All Members",
+    #     'daily_calories': None,
+    #     'protein_grams': None,
+    #     'fat_grams': None,
+    #     'carbs_grams': None,
+    #     'cuisines': [],
+    #     'allergies': list(all_allergies),
+    #     'dietary_restrictions': list(all_restrictions),
+    # }))
+    
+    # selected_member_id = request.args.get('member_id')
+
+    # selected_member = None
+    # if selected_member_id == "0":
+    #     selected_member = all_members_summary  
+    # elif selected_member_id:
+    #     selected_member = Member.query.filter_by(id=selected_member_id, user_id=current_user.id).first()
+    # elif members:
+    #     selected_member = members[0]
+
     selected_member_id = request.args.get('member_id', type=int)
 
     selected_member = None
