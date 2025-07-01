@@ -13,7 +13,9 @@ import os
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_from_directory, send_file
 import pandas as pd
 from PIL import Image
-import io
+
+os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
+
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -1303,6 +1305,225 @@ def is_main_ingredient_match(ingredient, ingredients_list):
 
 # --- Route ---
 
+# @app.route('/chatbot-recommend', methods=['POST'])
+# @login_required
+# def chatbot_recommend():
+#     start_time = time.time()
+
+#     data = request.get_json()
+#     prompt = data.get("prompt", "").lower()
+
+#     if not prompt:
+#         return jsonify({"recipes": []})
+
+#     calorie_limit = extract_calorie_limit(prompt)
+#     main_ingredient = extract_main_ingredient(prompt)
+
+#     documents = [
+#         str(r.get("name", "")) + " " + " ".join(r.get("ingredients", []))
+#         for r in recipes
+#     ]
+#     vectorizer = TfidfVectorizer().fit(documents + [prompt])
+#     doc_vectors = vectorizer.transform(documents)
+#     prompt_vector = vectorizer.transform([prompt])
+
+#     similarities = cosine_similarity(prompt_vector, doc_vectors).flatten()
+#     top_indices = similarities.argsort()[-10:][::-1]
+#     top_recipes = [recipes[i] for i in top_indices]
+
+#     if calorie_limit:
+#         top_recipes = [r for r in top_recipes if r.get("calories", 99999) <= calorie_limit]
+
+#     if main_ingredient:
+#         top_recipes = [
+#             r for r in top_recipes
+#             if is_main_ingredient_match(main_ingredient, r.get("ingredients", []))
+#         ]
+
+#     if not top_recipes:
+#         return jsonify({"recipes": []})
+
+#     context = "\n".join([
+#         f"- {r['name']} (Calories: {r['calories']}) - Ingredients: {', '.join(r['ingredients'])}"
+#         for r in top_recipes
+#     ])
+
+#     full_prompt = f"""
+# I have the following recipes:
+# {context}
+
+# Based on the user request: "{prompt}", which recipes would you recommend and why?
+# Please return up to 3 suggestions.
+# """
+
+#     llama_start = time.time()
+#     try:
+#         response = requests.post(
+#             "http://localhost:11434/api/generate",
+#             json={"model": "llama3", "prompt": full_prompt, "stream": False}
+#         )
+#         result = response.json()
+#         llama_output = result.get("response", "").strip()
+#     except Exception as e:
+#         print("❌ LLaMA error:", e)
+#         llama_output = "Sorry, the model failed to respond."
+#     llama_end = time.time()
+
+#     print(f"⏱️ Total time: {time.time() - start_time:.2f}s | LLaMA time: {llama_end - llama_start:.2f}s")
+#     print("📨 Full prompt sent to LLaMA:\n", full_prompt)
+
+#     return jsonify({
+#         "response": llama_output,
+#         "recipes": [
+#             {
+#                 "name": r["name"],
+#                 "calories": r["calories"],
+#                 "image": r["image"]
+#             } for r in top_recipes
+#         ]
+#     })
+
+import os
+import time
+import json
+import urllib.parse
+import re
+import random
+import torch
+from flask import Flask, request, jsonify
+from flask_login import login_required
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+from transformers import GPT2LMHeadModel, GPT2Tokenizer
+
+# # Load GPT-2 model and tokenizer once at startup
+# gpt2_model = GPT2LMHeadModel.from_pretrained("gpt2")
+# gpt2_tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
+# gpt2_model.eval()
+
+# # Enable GPU if available
+# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# gpt2_model.to(device)
+
+# @app.route('/chatbot-recommend', methods=['POST'])
+# @login_required
+# def chatbot_recommend():
+#     start_time = time.time()
+
+#     data = request.get_json()
+#     prompt = data.get("prompt", "").lower()
+#     selected_model = data.get("model", "gpt2")  # default to gpt2
+
+#     if not prompt:
+#         return jsonify({"recipes": []})
+
+#     calorie_limit = extract_calorie_limit(prompt)
+#     main_ingredient = extract_main_ingredient(prompt)
+
+#     documents = [
+#         str(r.get("name", "")) + " " + " ".join(r.get("ingredients", []))
+#         for r in recipes
+#     ]
+#     vectorizer = TfidfVectorizer().fit(documents + [prompt])
+#     doc_vectors = vectorizer.transform(documents)
+#     prompt_vector = vectorizer.transform([prompt])
+
+#     similarities = cosine_similarity(prompt_vector, doc_vectors).flatten()
+#     top_indices = similarities.argsort()[-10:][::-1]
+#     top_recipes = [recipes[i] for i in top_indices]
+
+#     if calorie_limit:
+#         top_recipes = [r for r in top_recipes if r.get("calories", 99999) <= calorie_limit]
+
+#     if main_ingredient:
+#         top_recipes = [
+#             r for r in top_recipes
+#             if is_main_ingredient_match(main_ingredient, r.get("ingredients", []))
+#         ]
+
+#     if not top_recipes:
+#         return jsonify({"recipes": []})
+
+#     random.shuffle(top_recipes)  # introduce variation
+
+#     context = "\n".join([
+#         f"- {r['name']} (Calories: {r['calories']}) - Ingredients: {', '.join(r['ingredients'])}"
+#         for r in top_recipes
+#     ])
+
+#     full_prompt = f"""
+#     I have the following recipes:
+#     {context}
+
+#     Based on the user request: "{prompt}", which recipes would you recommend and why?
+#     Please return up to 9 suggestions.
+#     """
+
+#     response_text = "Model failed to respond."
+
+#     try:
+#         if selected_model == "gpt2":
+#             input_ids = gpt2_tokenizer.encode(full_prompt, return_tensors="pt").to(device)
+
+#             # Generate with sampling for more diverse responses
+#             output_ids = gpt2_model.generate(
+#                 input_ids,
+#                 max_length=512,
+#                 do_sample=True,
+#                 temperature=0.9,
+#                 top_k=50,
+#                 top_p=0.95,
+#                 num_return_sequences=1,
+#                 pad_token_id=gpt2_tokenizer.eos_token_id
+#             )
+
+#             response_text = gpt2_tokenizer.decode(output_ids[0], skip_special_tokens=True)
+#             # Trim to part after prompt
+#             response_text = response_text[len(full_prompt):].strip()
+
+#         else:
+#             # Fallback to local LLaMA server if selected
+#             llama_response = requests.post(
+#                 "http://localhost:11434/api/generate",
+#                 json={"model": "llama3", "prompt": full_prompt, "stream": False}
+#             )
+#             result = llama_response.json()
+#             response_text = result.get("response", "").strip()
+
+#     except Exception as e:
+#         print(f"❌ Model error ({selected_model}):", e)
+
+#     print(f"⏱️ Total time: {time.time() - start_time:.2f}s")
+#     print("📨 Full prompt sent:\n", full_prompt)
+
+#     return jsonify({
+#         "response": response_text,
+#         "recipes": [
+#             {
+#                 "name": r["name"],
+#                 "calories": r["calories"],
+#                 "image": r["image"]
+#             } for r in top_recipes[:9]
+#         ]
+#     })
+
+# Load GPT-2 once globally
+gpt2_model = GPT2LMHeadModel.from_pretrained("gpt2")
+gpt2_tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
+gpt2_model.eval()
+
+# --- Utility: extract recipe names from text ---
+def extract_recipe_names(text, known_names):
+    selected = []
+    for line in text.splitlines():
+        match = re.match(r"^\s*\d+[\.\)]?\s*(.+?)(?:\s*[-(]|$)", line.strip())
+        if match:
+            candidate = match.group(1).strip().lower()
+            for name in known_names:
+                if candidate in name.lower() and name not in selected:
+                    selected.append(name)
+    return selected
+
 @app.route('/chatbot-recommend', methods=['POST'])
 @login_required
 def chatbot_recommend():
@@ -1310,6 +1531,7 @@ def chatbot_recommend():
 
     data = request.get_json()
     prompt = data.get("prompt", "").lower()
+    selected_model = data.get("model", "gpt2")  # default to local GPT-2
 
     if not prompt:
         return jsonify({"recipes": []})
@@ -1340,6 +1562,8 @@ def chatbot_recommend():
 
     if not top_recipes:
         return jsonify({"recipes": []})
+    
+    random.shuffle(top_recipes) 
 
     context = "\n".join([
         f"- {r['name']} (Calories: {r['calories']}) - Ingredients: {', '.join(r['ingredients'])}"
@@ -1351,36 +1575,54 @@ I have the following recipes:
 {context}
 
 Based on the user request: "{prompt}", which recipes would you recommend and why?
-Please return up to 3 suggestions.
+Please return up to 9 suggestions.
 """
 
-    llama_start = time.time()
-    try:
-        response = requests.post(
-            "http://localhost:11434/api/generate",
-            json={"model": "llama3", "prompt": full_prompt, "stream": False}
-        )
-        result = response.json()
-        llama_output = result.get("response", "").strip()
-    except Exception as e:
-        print("❌ LLaMA error:", e)
-        llama_output = "Sorry, the model failed to respond."
-    llama_end = time.time()
+    response_text = "Model failed to respond."
 
-    print(f"⏱️ Total time: {time.time() - start_time:.2f}s | LLaMA time: {llama_end - llama_start:.2f}s")
-    print("📨 Full prompt sent to LLaMA:\n", full_prompt)
+    try:
+        if selected_model == "llama":
+            llama_response = requests.post(
+                "http://localhost:11434/api/generate",
+                json={"model": "llama3", "prompt": full_prompt, "stream": False}
+            )
+            result = llama_response.json()
+            response_text = result.get("response", "").strip()
+
+        else:  # Local GPT-2
+            input_ids = gpt2_tokenizer.encode(full_prompt, return_tensors="pt")
+            with torch.no_grad():
+                output = gpt2_model.generate(
+                    input_ids,
+                    max_length=512,
+                    do_sample=True,
+                    temperature=0.7,
+                    top_k=50,
+                    top_p=0.95,
+                    num_return_sequences=1
+                )
+            response_text = gpt2_tokenizer.decode(output[0], skip_special_tokens=True)
+            response_text = response_text.replace(full_prompt.strip(), "").strip()
+
+    except Exception as e:
+        print(f"❌ Model error ({selected_model}):", e)
+
+    llm_selected_names = extract_recipe_names(response_text, [r["name"] for r in top_recipes])
+    filtered_recipes = [r for r in top_recipes if r["name"] in llm_selected_names][:9] if llm_selected_names else top_recipes[:9]
+
+    print(f"⏱️ Total time: {time.time() - start_time:.2f}s")
+    print("📨 Full prompt sent:\n", full_prompt)
 
     return jsonify({
-        "response": llama_output,
+        "response": response_text,
         "recipes": [
             {
                 "name": r["name"],
                 "calories": r["calories"],
                 "image": r["image"]
-            } for r in top_recipes
+            } for r in filtered_recipes
         ]
     })
-
 
 from flask import request
 

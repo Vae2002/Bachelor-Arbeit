@@ -14,28 +14,42 @@
     <div class="modal fade" id="chatbotModal" tabindex="-1" aria-labelledby="chatbotModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-xl modal-dialog-scrollable">
             <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Recipe Chatbot</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <input type="text" id="chatbotPrompt" class="form-control mb-3" placeholder="What do you feel like eating? e.g. spicy chicken, healthy vegetarian...">
-                <button id="chatbotSubmit" class="btn btn-primary mb-3">Get Recipes</button>
-                <div id="chatbotResults" class="row"></div>
-            </div>
+                <div class="modal-header">
+                    <h5 class="modal-title">Recipe Chatbot</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="text" id="chatbotPrompt" class="form-control mb-3" placeholder="What do you feel like eating? e.g. spicy chicken, healthy vegetarian...">
+
+                    <!-- Two buttons for model selection -->
+                    <div class="mb-3">
+                        <button class="btn btn-secondary me-2" onclick="submitChatbot('gpt')">⚡ Faster (GPT)</button>
+                        <button class="btn btn-primary" onclick="submitChatbot('llama')">🎯 More Accurate (LLaMA)</button>
+                    </div>
+
+                    <div id="chatbotResults" class="row"></div>
+                </div>
             </div>
         </div>
     </div>
 
+    <!-- Optional: notification sound -->
+    <audio id="chatbotNotification" src="/static/sounds/notification.mp3" preload="auto"></audio>
+
     <script>
-        document.getElementById("chatbotSubmit").addEventListener("click", function () {
-            const prompt = document.getElementById("chatbotPrompt").value;
+        function submitChatbot(model) {
+            const prompt = document.getElementById("chatbotPrompt").value.trim();
             const resultsDiv = document.getElementById("chatbotResults");
+
+            if (!prompt) {
+                resultsDiv.innerHTML = '<p>Please enter a prompt.</p>';
+                return;
+            }
 
             // Clear previous results and show loading animation
             resultsDiv.innerHTML = '<p id="loadingText">Loading.</p>';
 
-            // Animate the loading text: "Loading." → "Loading.." → "Loading..."
+            // Animate the loading text
             let dots = 1;
             const loadingText = document.getElementById("loadingText");
             const loadingInterval = setInterval(() => {
@@ -46,19 +60,17 @@
             fetch("/chatbot-recommend", {
                 method: "POST",
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt: prompt })
+                body: JSON.stringify({ prompt: prompt, model: model })
             })
             .then(res => res.json())
-
             .then(data => {
                 clearInterval(loadingInterval);
                 resultsDiv.innerHTML = '';
 
-                // 🔔 Play notification sound
                 const audio = document.getElementById("chatbotNotification");
                 if (audio) audio.play().catch(e => console.log("Autoplay prevented:", e));
 
-                if (data.recipes.length === 0) {
+                if (!data.recipes || data.recipes.length === 0) {
                     resultsDiv.innerHTML = '<p>No recipes found.</p>';
                     return;
                 }
@@ -82,14 +94,14 @@
                     resultsDiv.appendChild(card);
                 });
             })
-
             .catch(error => {
                 clearInterval(loadingInterval);
                 resultsDiv.innerHTML = '<p>Error fetching recipes. Please try again.</p>';
                 console.error('Error:', error);
             });
-        });
+        }
     </script>
+
 
 
     <form method="POST">
