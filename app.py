@@ -811,9 +811,10 @@ def member_diet_calculator():
         protein = float(data['protein'])
         fat = float(data['fat'])
         carbs = float(data['carbs'])
+        goal = request.form['goal']
 
         bmr, tdee, protein_grams, fat_grams, carbs_grams = calculate_diet(
-            weight, height, age, gender, activity, protein, fat, carbs
+            weight, height, age, gender, activity, goal, protein, fat, carbs
         )
 
         return jsonify({
