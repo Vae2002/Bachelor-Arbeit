@@ -660,11 +660,13 @@ def recipe_ai_suggestions():
 # =================== DIET CALCULATOR ===================
 
 def calculate_diet(weight, height, age, gender, activity, protein_pct, fat_pct, carbs_pct):
-    # BMR calculation
+    # BMR / REE calculation using Mifflin-St Jeor
     if gender == 'male':
-        bmr = 10 * weight + 6.25 * height - 5 * age + 5
+        ree = 10 * weight + 6.25 * height - 5 * age + 5
+        default_activity_factor = 1.7 
     else:
-        bmr = 10 * weight + 6.25 * height - 5 * age - 161
+        ree = 10 * weight + 6.25 * height - 5 * age - 161
+        default_activity_factor = 1.6  
 
     activity_multipliers = {
         'sedentary': 1.2,
@@ -673,18 +675,19 @@ def calculate_diet(weight, height, age, gender, activity, protein_pct, fat_pct, 
         'intense': 1.725
     }
 
-    tdee = bmr * activity_multipliers.get(activity, 1.2)
-    
+    activity_multiplier = activity_multipliers.get(activity, default_activity_factor)
+    tdee = ree * activity_multiplier
+
     # Macronutrient Breakdown
-    protein_pct = float(request.form['protein']) / 100
-    fat_pct = float(request.form['fat']) / 100
+    protein_pct = float(protein_pct) / 100
+    fat_pct = float(fat_pct) / 100
     carbs_pct = 1 - protein_pct - fat_pct
 
     protein_grams = (tdee * protein_pct) / 4
     fat_grams = (tdee * fat_pct) / 9
     carbs_grams = (tdee * carbs_pct) / 4
 
-    return round(bmr), round(tdee), round(protein_grams), round(fat_grams), round(carbs_grams)
+    return round(ree), round(tdee), round(protein_grams), round(fat_grams), round(carbs_grams)
 
 @app.route('/diet_calculator', methods=['GET', 'POST'])
 @login_required
