@@ -659,7 +659,7 @@ def recipe_ai_suggestions():
 
 # =================== DIET CALCULATOR ===================
 
-def calculate_diet(weight, height, age, gender, activity, protein_pct, fat_pct, carbs_pct):
+def calculate_diet(weight, height, age, gender, activity, goal, protein_pct, fat_pct, carbs_pct):
     # BMR / REE calculation using Mifflin-St Jeor
     if gender == 'male':
         ree = 10 * weight + 6.25 * height - 5 * age + 5
@@ -677,6 +677,12 @@ def calculate_diet(weight, height, age, gender, activity, protein_pct, fat_pct, 
 
     activity_multiplier = activity_multipliers.get(activity, default_activity_factor)
     tdee = ree * activity_multiplier
+
+    # Adjust TDEE based on goal
+    if goal == 'lose_weight':
+        tdee *= 0.8  # 20% deficit recommended for weight loss
+    elif goal == 'gain_weight':
+        tdee *= 1.1  # 10% surplus recommended for weight gain
 
     # Macronutrient Breakdown
     protein_pct = float(protein_pct) / 100
@@ -724,10 +730,11 @@ def diet_calculator():
         protein = float(request.form['protein'])
         fat = float(request.form['fat'])
         carbs = float(request.form['carbs'])
+        goal = request.form['goal']
 
 
         bmr, tdee, protein_grams, fat_grams, carbs_grams = calculate_diet(
-            weight, height, age, gender, activity, protein, fat, carbs
+            weight, height, age, gender, activity, goal, protein, fat, carbs
         )
         
         # Save the calculated values to the database (before 'Save to Profile')
