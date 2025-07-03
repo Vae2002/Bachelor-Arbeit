@@ -122,9 +122,9 @@ document.addEventListener('DOMContentLoaded', function () {
         modal.show();
     });
 
-    const addMemberModalEl = document.getElementById('memberModal');
+    // const addMemberModalEl = document.getElementById('memberModal');
 
-    addMemberModalEl.addEventListener('hidden.bs.modal', function () {
-        window.location.href = "/profile?member_id=1";
-    });
+    // addMemberModalEl.addEventListener('hidden.bs.modal', function () {
+    //     window.location.href = "/profile?member_id=1";
+    // });
 });
