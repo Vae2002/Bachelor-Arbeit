@@ -732,6 +732,13 @@ def diet_calculator():
         carbs = float(request.form['carbs'])
         goal = request.form['goal']
 
+        unit_system = request.form.get('metric')  # 'metric' or 'imperial'
+
+        if unit_system == 'imperial':
+            # Convert lbs to kg and inches to cm
+            weight = weight * 0.453592
+            height = height * 2.54
+
 
         bmr, tdee, protein_grams, fat_grams, carbs_grams = calculate_diet(
             weight, height, age, gender, activity, goal, protein, fat, carbs
@@ -803,8 +810,14 @@ def member_diet_calculator():
     data = request.form
 
     try:
+        unit_system = data.get('metric')
         weight = float(data['weight'])
         height = float(data['height'])
+
+        if unit_system == 'imperial':
+            weight = weight * 0.453592
+            height = height * 2.54
+
         age = int(data['age'])
         gender = data['gender']
         activity = data['activity']
