@@ -13,6 +13,9 @@ import os
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_from_directory, send_file
 import pandas as pd
 from PIL import Image
+import time
+boot_start = time.time()
+
 
 os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
@@ -655,7 +658,6 @@ def recipe_ai_suggestions():
     ]
 
     return {"recipes": suggestions}
-
 
 # =================== DIET CALCULATOR ===================
 
@@ -1664,7 +1666,6 @@ def recipe_detail(recipe_name):
 
     return render_template('recipe_detail.html', recipe=recipe, source=source, prompt=prompt)
 
-
 @app.route('/save_to_meal_planner', methods=['POST'])
 @login_required
 def save_to_meal_planner():
@@ -1745,6 +1746,137 @@ def save_to_meal_planner():
         return jsonify({'success': True, 'message': f"{meal.capitalize()} on {date} saved."})
 
     return redirect(url_for('meal_planner', member_id=member_id))
+
+# =================== EVALUATION ===================
+
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+
+@app.route('/evaluate_recipes')
+def evaluate_recipes():
+    recipes = load_recipes()  # Load from CSV
+    if not recipes:
+        return jsonify({"error": "No recipes available."}), 400
+
+    # Assume each recipe has: 'name', 'ingredients' fields
+    data = pd.DataFrame([{
+        "name": r['name'],
+        "ingredients": " ".join(r['ingredients']) if isinstance(r['ingredients'], list) else str(r['ingredients']),
+        "label": 1 if 'meat' in r['name'].lower() else 0  # dummy label: meat vs non-meat
+    } for r in recipes if r.get('ingredients')])
+
+    if len(data) < 5:
+        return jsonify({"error": "Not enough valid recipes for evaluation."}), 400
+
+    X_train, X_test, y_train, y_test = train_test_split(data["ingredients"], data["label"], test_size=0.3, random_state=42)
+    vectorizer = TfidfVectorizer()
+    X_train_tfidf = vectorizer.fit_transform(X_train)
+    X_test_tfidf = vectorizer.transform(X_test)
+
+    knn = NearestNeighbors(n_neighbors=1, metric='cosine')
+    knn.fit(X_train_tfidf)
+    _, indices = knn.kneighbors(X_test_tfidf)
+    y_pred = [y_train.iloc[i[0]] for i in indices]
+
+    report = classification_report(y_test, y_pred, output_dict=True)
+    return jsonify({
+        "accuracy": accuracy_score(y_test, y_pred),
+        "confusion_matrix": confusion_matrix(y_test, y_pred).tolist(),
+        "report": report
+    })
+
+@app.route('/evaluate_matches')
+def evaluate_matches():
+    # Mock user for testing – replace with session or actual user object
+    target_calories = 600  # Example
+    allergens = ['peanut', 'shellfish']  # Example
+
+    recipes = load_recipes()
+    if not recipes:
+        return jsonify({"error": "No recipes available."}), 400
+
+    matches = 0
+    total = 0
+
+    for r in recipes:
+        total += 1
+        name = r['name'].lower()
+        if any(a in name for a in allergens):
+            continue
+        try:
+            if float(r.get('calories', 0)) > target_calories + 100:
+                continue
+        except ValueError:
+            continue
+        matches += 1
+
+    match_rate = matches / total if total else 0
+    return jsonify({
+        "match_rate": round(match_rate * 100, 2),
+        "matched": matches,
+        "total": total
+    })
+
+@app.route('/evaluate_chatbot')
+def evaluate_chatbot():
+    from app import app  # optional, only if outside app.py
+    client = app.test_client()
+
+    test_cases = [
+        {
+            "prompt": "Give me a vegan meal under 500 calories",
+            "cal_max": 500,
+            "must_include": ["vegan"],
+            "avoid": ["meat", "chicken", "fish"]
+        },
+        {
+            "prompt": "Suggest a high protein lunch for muscle gain",
+            "must_include": ["protein"],
+            "avoid": ["sugar"]
+        },
+        {
+            "prompt": "What’s a low-carb dinner with eggs?",
+            "must_include": ["eggs"],
+            "avoid": ["pasta", "bread"]
+        }
+    ]
+
+    results = []
+
+    for case in test_cases:
+        start = time.time()
+        response = client.post(
+            "/recipe-ai-suggestions",  # or your chatbot route
+            data=json.dumps({"prompt": case["prompt"]}),
+            content_type="application/json"
+        )
+        duration = round((time.time() - start) * 1000, 2)
+
+        response_json = response.get_json()
+        response_text = json.dumps(response_json).lower()
+
+        # Evaluation rules
+        pass_checks = {
+            "includes_required": all(term in response_text for term in case.get("must_include", [])),
+            "excludes_forbidden": all(term not in response_text for term in case.get("avoid", [])),
+        }
+
+        # Calorie check
+        cal_match = re.search(r"(\d+)\s*calories", response_text)
+        calories_ok = True
+        if "cal_max" in case and cal_match:
+            cal_value = int(cal_match.group(1))
+            calories_ok = cal_value <= case["cal_max"]
+
+        results.append({
+            "prompt": case["prompt"],
+            "response_snippet": response_text[:200],
+            "response_time_ms": duration,
+            "calories_ok": calories_ok,
+            **pass_checks
+        })
+
+    return jsonify(results)
 
 
 # =================== MEAL PLANNER ===================
@@ -1997,7 +2129,6 @@ def scan_barcode():
         return jsonify({'error': str(e)}), 500
 
 
-
 @app.route('/pantry', methods=['GET', 'POST'])
 @login_required
 def pantry():
@@ -2052,4 +2183,6 @@ def delete_pantry_item(item_id):
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()  
+    boot_end = time.time()
+    print(f"Flask app initialized in {round(boot_end - boot_start, 2)} seconds")
     app.run(debug=True)
